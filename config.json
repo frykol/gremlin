@@ -1,6 +1,10 @@
 {
   "gpio": {
-    "chip": "/dev/gpiochip0"
+    "chip": "/dev/gpiochip0",
+    "pins":{
+    	"R_EN": 5,
+    	"L_EN": 6
+    }
   },
   "oak_d": {
     "width": 1280,
