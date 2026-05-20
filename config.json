@@ -1,0 +1,10 @@
+{
+  "gpio": {
+    "chip": "/dev/gpiochip0"
+  },
+  "oak_d": {
+    "width": 1280,
+    "height": 720,
+    "fps": 30
+  }
+}
