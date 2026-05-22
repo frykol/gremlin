@@ -9,6 +9,7 @@ from src.hardware.respeaker.interface import MicArrayInterface
 from .robot_state import RobotState
 from .services.command_processor import CommandProcessor
 from .services.camera_streamer import CameraStreamer
+from .services.audio_streamer import AudioStreamer
 from .logic.robot_logic import RobotLogic
 from .workers.camera_worker import CameraWorker
 from .workers.mic_worker import MicWorker
@@ -45,6 +46,15 @@ class RobotController:
             fps=fps
         )
 
+        respeaker_config = config.get("respeaker", {})
+        audio_channel = respeaker_config.get("stream_channel", 0)
+
+        self.audio_streamer = AudioStreamer(
+            ws=ws,
+            state=self.state,
+            channel=audio_channel,
+        )
+
         self.logic = RobotLogic(
             gpio=gpio,
             i2c_pwm=i2c_pwm
@@ -59,6 +69,7 @@ class RobotController:
         tasks = [
             asyncio.create_task(self.command_processor.run()),
             asyncio.create_task(self.camera_streamer.run()),
+            asyncio.create_task(self.audio_streamer.run()),
             asyncio.create_task(self.logic.run()),
         ]
 

@@ -5,6 +5,7 @@ import websockets
 import json
 
 from Camera_view import CameraView
+from Mic_view import MicView
 from GPIO_view import GpioView
 from I2C_view import I2CView
 
@@ -28,6 +29,7 @@ class App(tk.Tk):
         self.frames = {}
 
         self.frames["camera"] = CameraView(container, self)
+        self.frames["mic"] = MicView(container, self)
         self.frames["gpio"] = GpioView(container, self)
         self.frames["i2c"] = I2CView(container, self)
 
@@ -39,6 +41,7 @@ class App(tk.Tk):
         sidebar.place(relx=0, rely=0, relwidth=0.2, relheight=1)
 
         tk.Button(sidebar, text="Camera", command=lambda: self.show("camera")).pack(fill="x")
+        tk.Button(sidebar, text="Mikrofon", command=lambda: self.show("mic")).pack(fill="x")
         tk.Button(sidebar, text="GPIO", command=lambda: self.show("gpio")).pack(fill="x")
         tk.Button(sidebar, text="I2C PWM", command=lambda: self.show("i2c")).pack(fill="x")
 
@@ -65,10 +68,11 @@ class App(tk.Tk):
 
                 # 🔥 CAMERA FRAME
                 if data.get("type") == "camera_frame":
-                    # ważne: Tkinter thread-safe
                     self.after(0, self.frames["camera"].update_frame, data)
 
-                # DEBUG (opcjonalnie)
+                elif data.get("type") == "audio_chunk":
+                    self.after(0, self.frames["mic"].update_audio, data)
+
                 else:
                     print("RX:", data)
 

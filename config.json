@@ -30,6 +30,7 @@
     "sample_rate": 16000,
     "channels": 6,
     "chunk_size": 1024,
-    "device_name": "ReSpeaker 4 Mic Array"
+    "device_name": "ReSpeaker 4 Mic Array",
+    "stream_channel": 0
   }
 }
