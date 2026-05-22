@@ -10,19 +10,22 @@ class AudioStreamer:
         self.ws: WSClientInterface = ws
         self.state: RobotState = state
         self.channel: int = channel
+        self._last_sent_chunk_id: int = -1
 
     async def run(self):
         while True:
             if self.state.audio_stream_enabled:
                 await self.send_audio_chunk()
 
-            await asyncio.sleep(0.01)
+            await asyncio.sleep(0.002)
 
     async def send_audio_chunk(self):
         chunk = self.state.last_audio_chunk
 
-        if chunk is None:
+        if chunk is None or chunk.chunk_id == self._last_sent_chunk_id:
             return
+
+        self._last_sent_chunk_id = chunk.chunk_id
 
         samples = chunk.samples
 

@@ -2,7 +2,6 @@ import tkinter as tk
 import base64
 import asyncio
 import json
-import queue
 import threading
 
 import numpy as np
@@ -14,16 +13,72 @@ except OSError:
     HAS_SOUNDDEVICE = False
 
 
+class AudioRingBuffer:
+    def __init__(self, capacity_samples: int):
+        self._buf = np.zeros(capacity_samples, dtype=np.float32)
+        self._capacity = capacity_samples
+        self._write = 0
+        self._read = 0
+        self._available = 0
+        self._lock = threading.Lock()
+
+    def write(self, samples: np.ndarray) -> None:
+        audio = samples.astype(np.float32) / 32768.0
+
+        with self._lock:
+            n = len(audio)
+            if n >= self._capacity:
+                audio = audio[-self._capacity:]
+                n = self._capacity
+                self._read = 0
+                self._write = 0
+                self._available = 0
+
+            first = min(n, self._capacity - self._write)
+            self._buf[self._write:self._write + first] = audio[:first]
+
+            rest = n - first
+            if rest > 0:
+                self._buf[:rest] = audio[first:]
+
+            self._write = (self._write + n) % self._capacity
+            self._available = min(self._capacity, self._available + n)
+
+    def read(self, frames: int, out: np.ndarray) -> None:
+        with self._lock:
+            to_read = min(frames, self._available)
+
+            if to_read == 0:
+                out.fill(0)
+                return
+
+            first = min(to_read, self._capacity - self._read)
+            out[:first] = self._buf[self._read:self._read + first]
+
+            rest = to_read - first
+            if rest > 0:
+                out[first:to_read] = self._buf[:rest]
+
+            self._read = (self._read + to_read) % self._capacity
+            self._available -= to_read
+
+            if to_read < frames:
+                out[to_read:] = 0
+
+
 class MicView(tk.Frame):
+    OUTPUT_BLOCKSIZE = 512
+
     def __init__(self, parent, app):
         super().__init__(parent)
 
         self.app = app
         self.sample_rate = 16000
-        self.playback_queue: queue.Queue[np.ndarray] = queue.Queue(maxsize=32)
-        self.playback_thread: threading.Thread | None = None
-        self.playback_running = False
         self.level_var = tk.StringVar(value="0%")
+
+        self._ring: AudioRingBuffer | None = None
+        self._output_stream = None
+        self._stream_lock = threading.Lock()
 
         self.screen = tk.Frame(self, bg="black", borderwidth=3, relief="ridge")
         self.screen.place(relx=0.3, rely=0.05, relheight=0.55, relwidth=0.6)
@@ -73,40 +128,46 @@ class MicView(tk.Frame):
     def start_playback(self):
         if not HAS_SOUNDDEVICE or not self.playback_var.get():
             return
-        if self.playback_running:
-            return
 
-        self.playback_running = True
-        self.playback_thread = threading.Thread(target=self._playback_loop, daemon=True)
-        self.playback_thread.start()
+        with self._stream_lock:
+            if self._output_stream is not None:
+                return
+
+            self._ring = AudioRingBuffer(self.sample_rate)
+
+            def callback(outdata, frames, _time, _status):
+                if self._ring is None or not self.playback_var.get():
+                    outdata.fill(0)
+                    return
+                self._ring.read(frames, outdata[:, 0])
+
+            self._output_stream = sd.OutputStream(
+                samplerate=self.sample_rate,
+                channels=1,
+                dtype="float32",
+                blocksize=self.OUTPUT_BLOCKSIZE,
+                callback=callback,
+            )
+            self._output_stream.start()
 
     def stop_playback(self):
-        self.playback_running = False
-        while not self.playback_queue.empty():
-            try:
-                self.playback_queue.get_nowait()
-            except queue.Empty:
-                break
-
-    def _playback_loop(self):
-        while self.playback_running:
-            try:
-                samples = self.playback_queue.get(timeout=0.2)
-            except queue.Empty:
-                continue
-
-            if not self.playback_var.get():
-                continue
-
-            audio = samples.astype(np.float32) / 32768.0
-            sd.play(audio, self.sample_rate, blocking=True)
+        with self._stream_lock:
+            if self._output_stream is not None:
+                self._output_stream.stop()
+                self._output_stream.close()
+                self._output_stream = None
+            self._ring = None
 
     def update_audio(self, data):
         try:
             pcm = base64.b64decode(data["samples"])
             samples = np.frombuffer(pcm, dtype=np.int16)
 
-            self.sample_rate = data.get("sample_rate", self.sample_rate)
+            sample_rate = data.get("sample_rate", self.sample_rate)
+            if sample_rate != self.sample_rate:
+                self.sample_rate = sample_rate
+                self.stop_playback()
+                self.start_playback()
 
             peak = int(np.max(np.abs(samples))) if samples.size else 0
             level = min(100, int(peak / 32768 * 100))
@@ -114,11 +175,8 @@ class MicView(tk.Frame):
 
             self._draw_level(level)
 
-            if self.playback_var.get() and HAS_SOUNDDEVICE:
-                try:
-                    self.playback_queue.put_nowait(samples.copy())
-                except queue.Full:
-                    pass
+            if self.playback_var.get() and HAS_SOUNDDEVICE and self._ring is not None:
+                self._ring.write(samples)
 
         except Exception as e:
             print("Audio frame error:", e)
