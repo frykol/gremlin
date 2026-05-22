@@ -37,17 +37,15 @@ async def loop():
         oak_d_config["height"]
     )
 
-    oak_d_camera.start()
-
     gpio_c = GPIOController()
     gpio_c.setup()
-    gpio_c.set_pin("R_EN", True)
-    gpio_c.set_pin("L_EN", True)
+
 
     i2c_p = i2cPWM()
     i2c_p.start()
 
     robot = RobotController(
+        config=config,
         command_queue=r_tab,
         gpio=gpio_c,
         i2c_pwm=i2c_p,
