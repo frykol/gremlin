@@ -18,6 +18,11 @@ class WSClient(WSClientInterface):
 
                 print("Connected")
 
+                await self.websocket.send(json.dumps({
+                    "type": "register",
+                    "role": "robot"
+                }))
+
                 await self.listen()
 
             except Exception as e:

@@ -6,7 +6,10 @@ from typing import Optional
 @dataclass
 class CameraFrame:
     image: np.ndarray
-    timestamp: float | None = None
+    timestamp: float
+    width: int
+    height: int
+    frame_id: int
 
 class CameraInterface(ABC):
     @abstractmethod
