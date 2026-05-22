@@ -1,22 +1,22 @@
 import time
 from typing import Optional
 
-import cv2
 import depthai as dai
 
 from .interface import CameraInterface, CameraFrame
 
 class OakDCamera(CameraInterface):
     def __init__(self, width=640, height=480, fps=30):
-        self.width = width
-        self.height = height
-        self.fps = fps
+        self.width: int = width
+        self.height: int = height
+        self.fps: int = fps
+        self.frame_id: int = 0
 
-        self.running = False
+        self.running: bool = False
 
-        self.pipeline = None
-        self.device = None
-        self.queue = None
+        self.pipeline: dai.Pipeline | None = None
+        self.device: dai.Device | None = None
+        self.queue: dai.DataOutputQueue | None = None
 
     def start(self) -> None:
         if self.running:
@@ -66,10 +66,12 @@ class OakDCamera(CameraInterface):
 
         frame = in_rgb.getCvFrame()
 
+        self.frame_id += 1
+
         return CameraFrame(
             image=frame,
             timestamp=time.time(),
             width=self.width,
             height=self.height,
-            frame_id=0
+            frame_id=self.frame_id
         )

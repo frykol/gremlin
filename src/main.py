@@ -11,12 +11,7 @@ from .dev_connection.client_factory import create_client
 from .dev_connection.client import WSClientInterface
 from .robot_controller import RobotController
 
-def switch(i2c, ch, pwm):
-    for i in range(0, 4):
-       i2c.set_pwm(i,0,0)
-    i2c.set_pwm(ch, 0, pwm)
-
-async def loop():
+async def robot_run():
     config = load_config("config.json")
     is_dev = config["dev"]
 
@@ -56,7 +51,7 @@ async def loop():
     await robot.run()
 
 def main():
-    asyncio.run(loop())
+    asyncio.run(robot_run())
 
 if __name__ == "__main__":
     main()

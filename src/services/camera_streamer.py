@@ -3,12 +3,15 @@ import base64
 import asyncio
 import cv2
 
+from src.dev_connection.interface import WSClientInterface
+from src.robot_state import RobotState
+
 class CameraStreamer:
-    def __init__(self,ws, state, fps=15):
+    def __init__(self,ws: WSClientInterface, state: RobotState, fps: int = 15):
         #self.camera = camera
-        self.ws = ws
-        self.state = state
-        self.fps = fps
+        self.ws: WSClientInterface = ws
+        self.state: RobotState = state
+        self.fps: int = fps
 
     async def run(self):
         delay = 1 / self.fps

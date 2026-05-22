@@ -1,13 +1,15 @@
 import asyncio
+from ..hardware.gpio.gpio_controller import GPIOController
+from ..hardware.i2c.i2c_pwm import i2cPWM
 
 class RobotLogic:
-    def __init__(self, gpio, i2c_pwm):
-        self.gpio = gpio
-        self.i2c_pwm = i2c_pwm
+    def __init__(self, gpio: GPIOController, i2c_pwm: i2cPWM):
+        self.gpio: GPIOController = gpio
+        self.i2c_pwm: i2cPWM = i2c_pwm
 
     def setup(self):
-        self.gpio.set_pin("R_EN", True)
-        self.gpio.set_pin("L_EN", True)
+        self.gpio.set_named_pin("R_EN", True)
+        self.gpio.set_named_pin("L_EN", True)
 
     async def run(self):
         self.setup()

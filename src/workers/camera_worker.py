@@ -1,12 +1,15 @@
 import asyncio
 
-class CameraWorker:
-    def __init__(self, camera, state):
-        self.camera = camera
-        self.state = state
+from src.hardware.oak_d.interface import CameraInterface
+from src.robot_state import RobotState
 
-        self.running = False
-        self.task = None
+class CameraWorker:
+    def __init__(self, camera: CameraInterface, state: RobotState):
+        self.camera: CameraInterface = camera
+        self.state: RobotState = state
+
+        self.running: bool = False
+        self.task: asyncio.Task | None = None
 
     async def run(self):
         while self.running:

@@ -1,10 +1,24 @@
 {
-  "dev" : true, 
+  "dev" : true,
   "gpio": {
     "chip": "/dev/gpiochip0",
     "pins":{
     	"R_EN": 5,
     	"L_EN": 6
+    },
+    "standard_pins": {
+      "GPIO4": 4,
+      "GPIO5": 5,
+      "GPIO6": 6,
+      "GPIO12": 12,
+      "GPIO13": 13,
+      "GPIO16": 16,
+      "GPIO17": 17,
+      "GPIO23": 23,
+      "GPIO24": 24,
+      "GPIO25": 25,
+      "GPIO26": 26,
+      "GPIO27": 27
     }
   },
   "oak_d": {

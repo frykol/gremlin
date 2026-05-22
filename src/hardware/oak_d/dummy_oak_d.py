@@ -5,11 +5,11 @@ from .interface import CameraInterface, CameraFrame
 from typing import Optional
 
 class FakeOakDCamera(CameraInterface):
-    def __init__(self, width = 640, height = 480):
-        self.width = width
-        self.height = height
-        self.running = False
-        self.counter = 0
+    def __init__(self, width: int = 640, height: int = 480):
+        self.width: int = width
+        self.height: int = height
+        self.running: bool = False
+        self.counter: int = 0
 
     def start(self) -> None:
        self.running = True 

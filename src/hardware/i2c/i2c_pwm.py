@@ -8,8 +8,8 @@ LED0 = 0x06
 
 class i2cPWM:
     def __init__(self):
-        self.started = False 
-        self.bus = None
+        self.started: bool = False 
+        self.bus: SMBus | None = None
 
     def start(self) -> None:
         if self.started:
@@ -32,6 +32,8 @@ class i2cPWM:
         self.started = True
 
     def set_pwm(self, ch, on, off) -> None:
+        if self.bus is None:
+            return
         if not self.started:
             return 
 

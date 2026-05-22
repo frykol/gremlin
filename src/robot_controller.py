@@ -1,15 +1,21 @@
 import asyncio
 
+from src.dev_connection.interface import WSClientInterface
+from src.hardware.gpio.gpio_controller import GPIOController
+from src.hardware.i2c.i2c_pwm import i2cPWM
+from src.hardware.oak_d.interface import CameraInterface
+
 from .robot_state import RobotState
 from .services.command_processor import CommandProcessor
 from .services.camera_streamer import CameraStreamer
 from .logic.robot_logic import RobotLogic
 from .workers.camera_worker import CameraWorker
 
+
 class RobotController:
-    def __init__(self, config, command_queue, gpio, i2c_pwm, camera, ws):
-        self.config = config
-        self.state = RobotState()
+    def __init__(self, config: dict, command_queue: asyncio.Queue, gpio: GPIOController, i2c_pwm: i2cPWM, camera: CameraInterface, ws: WSClientInterface):
+        self.config: dict = config
+        self.state: RobotState = RobotState()
 
         self.command_processor = CommandProcessor(
             command_queue=command_queue,
