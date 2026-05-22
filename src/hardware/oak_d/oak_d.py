@@ -58,6 +58,9 @@ class OakDCamera(CameraInterface):
     def get_camera_frame(self) -> Optional[CameraFrame]:
         if not self.running:
             return None
+        
+        if self.queue is None:
+            return None
 
         in_rgb = self.queue.tryGet()
 

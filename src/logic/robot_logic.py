@@ -14,8 +14,9 @@ class RobotLogic:
     async def run(self):
         self.setup()
         while True:
-            self.i2c_pwm.set_pwm(0, 0, 2000)
-            await asyncio.sleep(1)
+            # self.i2c_pwm.set_pwm(0, 0, 2000)
+            # await asyncio.sleep(1)
 
-            self.i2c_pwm.set_pwm(0, 0, 0)
-            await asyncio.sleep(1)
+            # self.i2c_pwm.set_pwm(0, 0, 0)
+            # await asyncio.sleep(1)
+            await asyncio.sleep(0.1)
