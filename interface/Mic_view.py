@@ -76,9 +76,10 @@ class MicView(tk.Frame):
         self.sample_rate = 16000
         self.level_var = tk.StringVar(value="0%")
 
+        self._streaming = False
         self._ring: AudioRingBuffer | None = None
         self._output_stream = None
-        self._stream_lock = threading.Lock()
+        self._audio_lock = threading.Lock()
 
         self.screen = tk.Frame(self, bg="black", borderwidth=3, relief="ridge")
         self.screen.place(relx=0.3, rely=0.05, relheight=0.55, relwidth=0.6)
@@ -118,47 +119,70 @@ class MicView(tk.Frame):
             )
 
     def start_stream(self):
+        self._streaming = True
         self.send_audio_stream(True)
         self.start_playback()
 
     def stop_stream(self):
+        self._streaming = False
         self.send_audio_stream(False)
         self.stop_playback()
+
+    def _audio_callback(self, outdata, frames, _time, _status):
+        ring = self._ring
+        if ring is None:
+            outdata.fill(0)
+            return
+        ring.read(frames, outdata[:, 0])
 
     def start_playback(self):
         if not HAS_SOUNDDEVICE or not self.playback_var.get():
             return
 
-        with self._stream_lock:
+        with self._audio_lock:
             if self._output_stream is not None:
                 return
 
-            self._ring = AudioRingBuffer(self.sample_rate)
-
-            def callback(outdata, frames, _time, _status):
-                if self._ring is None or not self.playback_var.get():
-                    outdata.fill(0)
+        def _open():
+            with self._audio_lock:
+                if self._output_stream is not None or not self._streaming:
                     return
-                self._ring.read(frames, outdata[:, 0])
 
-            self._output_stream = sd.OutputStream(
-                samplerate=self.sample_rate,
-                channels=1,
-                dtype="float32",
-                blocksize=self.OUTPUT_BLOCKSIZE,
-                callback=callback,
-            )
-            self._output_stream.start()
+                self._ring = AudioRingBuffer(self.sample_rate)
+                stream = sd.OutputStream(
+                    samplerate=self.sample_rate,
+                    channels=1,
+                    dtype="float32",
+                    blocksize=self.OUTPUT_BLOCKSIZE,
+                    callback=self._audio_callback,
+                )
+                stream.start()
+                self._output_stream = stream
+
+        threading.Thread(target=_open, daemon=True).start()
 
     def stop_playback(self):
-        with self._stream_lock:
-            if self._output_stream is not None:
-                self._output_stream.stop()
-                self._output_stream.close()
-                self._output_stream = None
+        with self._audio_lock:
+            stream = self._output_stream
+            self._output_stream = None
             self._ring = None
 
+        if stream is None:
+            return
+
+        def _close():
+            try:
+                stream.stop()
+                stream.close()
+            except Exception as e:
+                print("Playback stop error:", e)
+
+        threading.Thread(target=_close, daemon=True).start()
+
     def update_audio(self, data):
+        if not self._streaming:
+            return
+
         try:
             pcm = base64.b64decode(data["samples"])
             samples = np.frombuffer(pcm, dtype=np.int16)
@@ -167,7 +191,8 @@ class MicView(tk.Frame):
             if sample_rate != self.sample_rate:
                 self.sample_rate = sample_rate
                 self.stop_playback()
-                self.start_playback()
+                if self._streaming:
+                    self.start_playback()
 
             peak = int(np.max(np.abs(samples))) if samples.size else 0
             level = min(100, int(peak / 32768 * 100))
@@ -175,8 +200,9 @@ class MicView(tk.Frame):
 
             self._draw_level(level)
 
-            if self.playback_var.get() and HAS_SOUNDDEVICE and self._ring is not None:
-                self._ring.write(samples)
+            ring = self._ring
+            if self.playback_var.get() and HAS_SOUNDDEVICE and ring is not None:
+                ring.write(samples)
 
         except Exception as e:
             print("Audio frame error:", e)
