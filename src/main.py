@@ -4,9 +4,9 @@ import asyncio
 import cv2
 from .config import load_config
 from .hardware.oak_d.dummy_oak_d import FakeOakDCamera
-from .hardware.oak_d.oak_d import OakDCamera
 from .hardware.i2c.i2c_pwm import i2cPWM
 from .hardware.gpio.gpio_controller import GPIOController
+from .hardware.respeaker.factory import create_mic_array
 from .dev_connection.client_factory import create_client
 from .dev_connection.client import WSClientInterface
 from .robot_controller import RobotController
@@ -27,10 +27,12 @@ async def robot_run():
     await asyncio.sleep(1)
 
     oak_d_config = config["oak_d"]
-    oak_d_camera = OakDCamera(
+    oak_d_camera = FakeOakDCamera(
         oak_d_config["width"],
         oak_d_config["height"]
     )
+
+    mic_array = create_mic_array(is_dev, config)
 
     gpio_c = GPIOController()
     gpio_c.setup()
@@ -45,6 +47,7 @@ async def robot_run():
         gpio=gpio_c,
         i2c_pwm=i2c_p,
         camera=oak_d_camera,
+        mic_array=mic_array,
         ws=ws
     )
 

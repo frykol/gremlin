@@ -25,5 +25,11 @@
     "width": 1280,
     "height": 720,
     "fps": 30
+  },
+  "respeaker": {
+    "sample_rate": 16000,
+    "channels": 6,
+    "chunk_size": 1024,
+    "device_name": "ReSpeaker 4 Mic Array"
   }
 }

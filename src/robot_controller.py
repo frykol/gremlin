@@ -4,16 +4,18 @@ from src.dev_connection.interface import WSClientInterface
 from src.hardware.gpio.gpio_controller import GPIOController
 from src.hardware.i2c.i2c_pwm import i2cPWM
 from src.hardware.oak_d.interface import CameraInterface
+from src.hardware.respeaker.interface import MicArrayInterface
 
 from .robot_state import RobotState
 from .services.command_processor import CommandProcessor
 from .services.camera_streamer import CameraStreamer
 from .logic.robot_logic import RobotLogic
 from .workers.camera_worker import CameraWorker
+from .workers.mic_worker import MicWorker
 
 
 class RobotController:
-    def __init__(self, config: dict, command_queue: asyncio.Queue, gpio: GPIOController, i2c_pwm: i2cPWM, camera: CameraInterface, ws: WSClientInterface):
+    def __init__(self, config: dict, command_queue: asyncio.Queue, gpio: GPIOController, i2c_pwm: i2cPWM, camera: CameraInterface, mic_array: MicArrayInterface, ws: WSClientInterface):
         self.config: dict = config
         self.state: RobotState = RobotState()
 
@@ -27,6 +29,11 @@ class RobotController:
         self.camera_worker = CameraWorker(
             state=self.state,
             camera=camera
+        )
+
+        self.mic_worker = MicWorker(
+            state=self.state,
+            mic_array=mic_array
         )
 
         fps = config.get("fps") or 15
@@ -47,6 +54,7 @@ class RobotController:
 
     async def run(self):
         self.camera_worker.start()
+        self.mic_worker.start()
 
         tasks = [
             asyncio.create_task(self.command_processor.run()),
@@ -65,3 +73,4 @@ class RobotController:
                 self.i2c_pwm.set_pwm(i, 0, 0)
 
             await self.camera_worker.stop()
+            await self.mic_worker.stop()
