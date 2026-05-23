@@ -2,3 +2,5 @@
 __pycache__/
 *.pyc
 models/*.task
+models/*.onnx
+src/services/onnx_hand/models/*.onnx

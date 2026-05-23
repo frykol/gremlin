@@ -37,14 +37,14 @@ class WebcamCamera(CameraInterface):
             raise RuntimeError(f"Nie można otworzyć kamery (device={self.device})")
 
         self.running = True
-        print(f"Kamera laptopa działa (device={self.device}, {self.width}x{self.height})")
+        print(f"Kamera USB działa (device={self.device}, {self.width}x{self.height})")
 
     def stop(self) -> None:
         self.running = False
         if self.cap is not None:
             self.cap.release()
             self.cap = None
-        print("Kamera laptopa zatrzymana")
+        print("Kamera USB zatrzymana")
 
     def get_camera_frame(self) -> Optional[CameraFrame]:
         if not self.running or self.cap is None:

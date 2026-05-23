@@ -1,21 +1,44 @@
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from urllib.request import urlretrieve
+from urllib.parse import urlparse
 
 import cv2
-import mediapipe as mp
-from mediapipe.tasks import python
-from mediapipe.tasks.python import vision
-from mediapipe.tasks.python.vision import HandLandmarksConnections
+import numpy as np
 
-MODEL_URL = (
-    "https://storage.googleapis.com/mediapipe-models/"
-    "hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task"
+from .onnx_hand.mp_handpose import MPHandPose
+from .onnx_hand.mp_palmdet import MPPalmDet
+
+PALM_MODEL_URL = (
+    "https://huggingface.co/opencv/palm_detection_mediapipe/resolve/main/"
+    "palm_detection_mediapipe_2023feb.onnx"
 )
-MODEL_PATH = Path(__file__).resolve().parents[2] / "models" / "hand_landmarker.task"
+HANDPOSE_MODEL_URL = (
+    "https://huggingface.co/opencv/handpose_estimation_mediapipe/resolve/main/"
+    "handpose_estimation_mediapipe_2023feb.onnx"
+)
+
+MODELS_DIR = Path(__file__).resolve().parent / "onnx_hand" / "models"
+PALM_MODEL_PATH = MODELS_DIR / "palm_detection_mediapipe_2023feb.onnx"
+HANDPOSE_MODEL_PATH = MODELS_DIR / "handpose_estimation_mediapipe_2023feb.onnx"
 
 FINGER_TIPS = [8, 12, 16, 20]
 FINGER_BASES = [5, 9, 13, 17]
+
+HAND_CONNECTIONS = [
+    (0, 1), (1, 2), (2, 3), (3, 4),
+    (0, 5), (5, 6), (6, 7), (7, 8),
+    (0, 9), (9, 10), (10, 11), (11, 12),
+    (0, 13), (13, 14), (14, 15), (15, 16),
+    (0, 17), (17, 18), (18, 19), (19, 20),
+    (5, 9), (9, 13), (13, 17),
+]
+
+
+@dataclass
+class Landmark:
+    x: float
+    y: float
 
 
 @dataclass
@@ -27,14 +50,82 @@ class HandGestureResult:
     gesture_name: str
 
 
-def _ensure_model() -> Path:
-    if MODEL_PATH.exists():
-        return MODEL_PATH
+@dataclass
+class HandDetectionResult:
+    hand_landmarks: list[list[Landmark]]
+    hand_landmarks_px: list[np.ndarray]
 
-    MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
-    print(f"Pobieram model MediaPipe do {MODEL_PATH}...")
-    urlretrieve(MODEL_URL, MODEL_PATH)
-    return MODEL_PATH
+
+HF_CDN_HOST = "cas-bridge.xethub.hf.co"
+
+
+def _resolve_via_wlan0(hostname: str) -> str | None:
+    try:
+        proc = subprocess.run(
+            ["resolvectl", "-i", "wlan0", "query", hostname],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+    except (FileNotFoundError, subprocess.SubprocessError):
+        return None
+
+    for line in proc.stdout.splitlines():
+        if hostname in line:
+            token = line.split(":", 1)[1].split("--", 1)[0].strip()
+        else:
+            token = line.split("--", 1)[0].strip()
+
+        if token and ":" not in token and not token.startswith("192.168."):
+            return token.split()[0]
+
+    return None
+
+
+def _download_via_wlan0(url: str, path: Path) -> None:
+    parsed = urlparse(url)
+    hostname = parsed.hostname
+    if hostname is None:
+        raise RuntimeError(f"Nieprawidlowy URL modelu: {url}")
+
+    hf_ip = _resolve_via_wlan0(hostname)
+    cdn_ip = _resolve_via_wlan0(HF_CDN_HOST)
+    if hf_ip is None or cdn_ip is None:
+        raise RuntimeError(
+            "Nie udalo sie rozwiazac DNS przez wlan0. "
+            "Router na end0 przechwytuje DNS (np. huggingface.co -> 192.168.31.1). "
+            "Ustaw DNS na wlan0: sudo resolvectl dns wlan0 1.1.1.1 "
+            "albo pobierz modele recznie do katalogu models/."
+        )
+
+    subprocess.run(
+        [
+            "curl",
+            "-fsSL",
+            "-L",
+            "--resolve",
+            f"{hostname}:443:{hf_ip}",
+            "--resolve",
+            f"{HF_CDN_HOST}:443:{cdn_ip}",
+            "--interface",
+            "wlan0",
+            "-o",
+            str(path),
+            url,
+        ],
+        check=True,
+    )
+
+
+def _ensure_model(url: str, path: Path) -> Path:
+    if path.exists() and path.stat().st_size > 100_000:
+        return path
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    print(f"Pobieram model ONNX do {path}...")
+    _download_via_wlan0(url, path)
+    return path
 
 
 def _thumb_extended(landmarks, handedness: str, mirrored: bool) -> bool:
@@ -105,6 +196,17 @@ def gesture_name_for(fingers: list[int]) -> str:
     return "nieznany"
 
 
+def _handedness_label(value: float) -> str:
+    return "Left" if value <= 0.5 else "Right"
+
+
+def _normalize_landmarks(landmarks_px: np.ndarray, width: int, height: int) -> list[Landmark]:
+    return [
+        Landmark(x=float(x) / width, y=float(y) / height)
+        for x, y in landmarks_px[:, :2]
+    ]
+
+
 class HandGestureDetector:
     def __init__(
         self,
@@ -113,42 +215,56 @@ class HandGestureDetector:
         min_tracking_confidence: float = 0.7,
         mirrored: bool = True,
     ):
+        self.max_hands = max_hands
         self.mirrored = mirrored
-        options = vision.HandLandmarkerOptions(
-            base_options=python.BaseOptions(model_asset_path=str(_ensure_model())),
-            running_mode=vision.RunningMode.IMAGE,
-            num_hands=max_hands,
-            min_hand_detection_confidence=min_detection_confidence,
-            min_hand_presence_confidence=min_detection_confidence,
-            min_tracking_confidence=min_tracking_confidence,
+        self._min_tracking_confidence = min_tracking_confidence
+
+        palm_path = str(_ensure_model(PALM_MODEL_URL, PALM_MODEL_PATH))
+        handpose_path = str(_ensure_model(HANDPOSE_MODEL_URL, HANDPOSE_MODEL_PATH))
+
+        self._palm_detector = MPPalmDet(
+            model_path=palm_path,
+            score_threshold=min_detection_confidence * 0.85,
         )
-        self._landmarker = vision.HandLandmarker.create_from_options(options)
+        self._handpose_detector = MPHandPose(
+            model_path=handpose_path,
+            conf_threshold=min_detection_confidence,
+        )
 
     def close(self) -> None:
-        self._landmarker.close()
+        if self._palm_detector is None:
+            return
+        self._palm_detector = None
+        self._handpose_detector = None
 
-    def process(self, frame_bgr) -> tuple[list[HandGestureResult], vision.HandLandmarkerResult]:
-        rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
-        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
-        results = self._landmarker.detect(mp_image)
+    def process(self, frame_bgr) -> tuple[list[HandGestureResult], HandDetectionResult]:
+        height, width = frame_bgr.shape[:2]
+        palms = self._palm_detector.infer(frame_bgr)
+
+        if palms.shape[0] == 0:
+            return [], HandDetectionResult(hand_landmarks=[], hand_landmarks_px=[])
+
+        if palms.shape[0] > self.max_hands:
+            order = np.argsort(palms[:, -1])[::-1][:self.max_hands]
+            palms = palms[order]
 
         gestures: list[HandGestureResult] = []
-        if not results.hand_landmarks:
-            return gestures, results
+        normalized_landmarks: list[list[Landmark]] = []
+        pixel_landmarks: list[np.ndarray] = []
 
-        for index, hand_landmarks in enumerate(results.hand_landmarks):
-            label = "Unknown"
-            confidence = 1.0
-            if results.handedness and index < len(results.handedness):
-                category = results.handedness[index][0]
-                label = category.category_name
-                confidence = category.score
+        for palm in palms:
+            handpose = self._handpose_detector.infer(frame_bgr, palm)
+            if handpose is None:
+                continue
 
-            fingers = count_fingers(hand_landmarks, label, self.mirrored)
-            if is_ok_gesture(hand_landmarks):
-                name = "ok"
-            else:
-                name = gesture_name_for(fingers)
+            landmarks_screen = handpose[4:67].reshape(21, 3)
+            landmarks_px = landmarks_screen[:, :2].astype(np.int32)
+            confidence = float(handpose[-1])
+            label = _handedness_label(float(handpose[-2]))
+            norm = _normalize_landmarks(landmarks_px, width, height)
+
+            fingers = count_fingers(norm, label, self.mirrored)
+            name = "ok" if is_ok_gesture(norm) else gesture_name_for(fingers)
 
             gestures.append(
                 HandGestureResult(
@@ -159,26 +275,26 @@ class HandGestureDetector:
                     gesture_name=name,
                 )
             )
+            normalized_landmarks.append(norm)
+            pixel_landmarks.append(landmarks_px)
 
-        return gestures, results
+        return gestures, HandDetectionResult(
+            hand_landmarks=normalized_landmarks,
+            hand_landmarks_px=pixel_landmarks,
+        )
 
-    def draw(self, frame_bgr, results: vision.HandLandmarkerResult) -> None:
-        if not results.hand_landmarks:
+    def draw(self, frame_bgr, results: HandDetectionResult) -> None:
+        if not results.hand_landmarks_px:
             return
 
-        height, width = frame_bgr.shape[:2]
-
-        for hand_landmarks in results.hand_landmarks:
-            for connection in HandLandmarksConnections.HAND_CONNECTIONS:
-                start = hand_landmarks[connection.start]
-                end = hand_landmarks[connection.end]
-                x1, y1 = int(start.x * width), int(start.y * height)
-                x2, y2 = int(end.x * width), int(end.y * height)
+        for landmarks_px in results.hand_landmarks_px:
+            for start, end in HAND_CONNECTIONS:
+                x1, y1 = landmarks_px[start]
+                x2, y2 = landmarks_px[end]
                 cv2.line(frame_bgr, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
-            for landmark in hand_landmarks:
-                x, y = int(landmark.x * width), int(landmark.y * height)
-                cv2.circle(frame_bgr, (x, y), 4, (0, 0, 255), -1)
+            for x, y in landmarks_px:
+                cv2.circle(frame_bgr, (int(x), int(y)), 4, (0, 0, 255), -1)
 
     def draw_command(self, frame_bgr, gesture: HandGestureResult | None) -> None:
         if gesture is None:

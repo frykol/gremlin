@@ -1,5 +1,7 @@
 import asyncio
 
+import cv2
+
 from src.robot_state import RobotState
 from src.services.gesture_executor import GestureExecutor
 from src.services.hand_gestures import HandGestureDetector
@@ -11,10 +13,12 @@ class GestureWorker:
         state: RobotState,
         detector: HandGestureDetector,
         executor: GestureExecutor,
+        flip_vertical: bool = False,
     ):
         self.state = state
         self.detector = detector
         self.executor = executor
+        self.flip_vertical = flip_vertical
         self.running = False
         self.task: asyncio.Task | None = None
         self._last_printed: str | None = None
@@ -28,13 +32,17 @@ class GestureWorker:
                 await asyncio.sleep(0.01)
                 continue
 
+            image = frame.image.copy()
+            if self.flip_vertical:
+                image = cv2.flip(image, 0)
+
             gestures, results = await loop.run_in_executor(
                 None,
                 self.detector.process,
-                frame.image.copy(),
+                image,
             )
 
-            display = frame.image.copy()
+            display = image
             self.detector.draw(display, results)
 
             primary = gestures[0] if gestures else None
