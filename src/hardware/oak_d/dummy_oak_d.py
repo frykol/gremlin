@@ -30,4 +30,4 @@ class FakeOakDCamera(CameraInterface):
         x = (self.counter * 10) % self.width
         frame[:, x:x + 20] = 255
 
-        return CameraFrame(image=frame, timestamp=time.time())
+        return CameraFrame(image=frame, timestamp=time.time(), width=self.width, height=self.height, frame_id=self.counter)

@@ -1,18 +1,11 @@
 import time
-import gpiod
-from gpiod.line import Direction, Value 
 from smbus2 import SMBus
-from src.config import load_config
 
 ADDR = 0x40
 MODE1 = 0x00
 PRESCALE = 0xFE
 LED0 = 0x06
 
-
-
-def test() -> None:
-    load_config("asd")
 class i2cPWM:
     def __init__(self):
         self.started = False 
@@ -48,3 +41,11 @@ class i2cPWM:
         self.bus.write_byte_data(ADDR, reg + 1, on >> 8)
         self.bus.write_byte_data(ADDR, reg + 2, off & 0xFF) 
         self.bus.write_byte_data(ADDR, reg + 3, off >> 8)
+
+    def set_pwm_percent(self, ch: int, percent: float):
+        if not self.started:
+            return
+        
+        percent = max(0, min(100,percent))
+        off = int(4095 * percent / 100)
+        self.set_pwm(ch, 0, off)
