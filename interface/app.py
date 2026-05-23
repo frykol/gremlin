@@ -9,14 +9,14 @@ class App(tk.Tk):
     def __init__(self):
         super().__init__()
 
-        self.title("System")
+        self.title("Interface")
         self.geometry("1600x800")
 
         container = tk.Frame(self)
         container.pack(fill="both", expand=True)
 
         self.frames = {}
-        
+
         self.frames["camera"] = CameraView(container)
         self.frames["gpio"] = GpioView(container)
         self.frames["i2c"] = I2CView(container)
@@ -29,7 +29,7 @@ class App(tk.Tk):
 
         tk.Button(sidebar, text="Camera", command=lambda: self.show("camera")).pack(fill="x")
         tk.Button(sidebar, text="GPIO", command=lambda: self.show("gpio")).pack(fill="x")
-        tk.Button(sidebar, text="I2C", command=lambda: self.show("i2c")).pack(fill="x")
+        tk.Button(sidebar, text="I2C PWM", command=lambda: self.show("i2c")).pack(fill="x")
 
         self.show("camera")
 
