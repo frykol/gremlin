@@ -1,23 +1,42 @@
 import tkinter as tk
 
-class App:
+from Camera_view import CameraView
+from GPIO_view import GpioView
+from I2C_view import I2CView
 
 
-    root = tk.Tk()
-    root.title("Test")
-    root.geometry("1600x800")
-    b1 = tk.Button(root, text = 'b1', command = root.destroy)
-    b1.place(relx = 0, rely = 0, relwidth=0.25, relheight=0.2)
-    b2 = tk.Button(root, text = 'b2', command = root.destroy)
-    b2.place(relx = 0, rely = 0.2, relwidth=0.25, relheight=0.2)
-    b3 = tk.Button(root, text = 'b3', command = root.destroy)
-    b3.place(relx = 0, rely = 0.4, relwidth=0.25, relheight=0.2)
-    frame = tk.Frame(root, bg="lightblue", bd=3, relief=tk.RIDGE)
-    frame.place(relx = 0.25, rely = 0, relheight = 0.6, relwidth = 0.5)
-    test_width = root.winfo_width()
-    test_height = root.winfo_height()
-    def on_resize(event):
-        print("Resize okna:", event.width, event.height)
+class App(tk.Tk):
+    def __init__(self):
+        super().__init__()
 
-    root.bind("<Configure>", on_resize)
-    root.mainloop() 
+        self.title("System")
+        self.geometry("1600x800")
+
+        container = tk.Frame(self)
+        container.pack(fill="both", expand=True)
+
+        self.frames = {}
+        
+        self.frames["camera"] = CameraView(container)
+        self.frames["gpio"] = GpioView(container)
+        self.frames["i2c"] = I2CView(container)
+
+        for frame in self.frames.values():
+            frame.place(relwidth=1, relheight=1)
+
+        sidebar = tk.Frame(self, bg="gray")
+        sidebar.place(relx=0, rely=0, relwidth=0.2, relheight=1)
+
+        tk.Button(sidebar, text="Camera", command=lambda: self.show("camera")).pack(fill="x")
+        tk.Button(sidebar, text="GPIO", command=lambda: self.show("gpio")).pack(fill="x")
+        tk.Button(sidebar, text="I2C", command=lambda: self.show("i2c")).pack(fill="x")
+
+        self.show("camera")
+
+    def show(self, name):
+        frame = self.frames[name]
+        frame.tkraise()
+
+
+if __name__ == "__main__":
+    App().mainloop()
