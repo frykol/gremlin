@@ -35,5 +35,8 @@ class CommandProcessor:
                 elif cmd["type"] == "stream":
                     self.state.stream_enabled = cmd["enabled"]
 
+                elif cmd["type"] == "audio_stream":
+                    self.state.audio_stream_enabled = cmd["enabled"]
+
         except asyncio.QueueEmpty:
             pass

@@ -4,3 +4,4 @@ gpiod
 smbus2
 websockets
 depthai<3
+sounddevice

@@ -5,13 +5,16 @@ from src.dev_connection.interface import WSClientInterface
 from src.hardware.gpio.gpio_controller import GPIOController
 from src.hardware.i2c.i2c_pwm import i2cPWM
 from src.hardware.oak_d.interface import CameraInterface
+from src.hardware.respeaker.interface import MicArrayInterface
 
 from .robot_state import RobotState
 from .services.command_processor import CommandProcessor
 from .services.camera_streamer import CameraStreamer
 from .services.camera_preview import CameraPreview
+from .services.audio_streamer import AudioStreamer
 from .logic.robot_logic import RobotLogic
 from .workers.camera_worker import CameraWorker
+from .workers.mic_worker import MicWorker
 from .workers.gesture_worker import GestureWorker
 from .services.hand_gestures import HandGestureDetector
 from .services.gesture_executor import GestureExecutor
@@ -22,7 +25,16 @@ def _display_available() -> bool:
 
 
 class RobotController:
-    def __init__(self, config: dict, command_queue: asyncio.Queue, gpio: GPIOController, i2c_pwm: i2cPWM, camera: CameraInterface, ws: WSClientInterface):
+    def __init__(
+        self,
+        config: dict,
+        command_queue: asyncio.Queue,
+        gpio: GPIOController,
+        i2c_pwm: i2cPWM,
+        camera: CameraInterface,
+        mic_array: MicArrayInterface,
+        ws: WSClientInterface,
+    ):
         self.config: dict = config
         self.state: RobotState = RobotState()
 
@@ -30,12 +42,17 @@ class RobotController:
             command_queue=command_queue,
             gpio=gpio,
             i2c_pwm=i2c_pwm,
-            state=self.state
+            state=self.state,
         )
 
         self.camera_worker = CameraWorker(
             state=self.state,
-            camera=camera
+            camera=camera,
+        )
+
+        self.mic_worker = MicWorker(
+            state=self.state,
+            mic_array=mic_array,
         )
 
         fps = config.get("fps") or 15
@@ -49,9 +66,18 @@ class RobotController:
             overlay_gestures=stream_config.get("overlay_gestures", False),
         )
 
+        respeaker_config = config.get("respeaker", {})
+        audio_channel = respeaker_config.get("stream_channel", 0)
+
+        self.audio_streamer = AudioStreamer(
+            ws=ws,
+            state=self.state,
+            channel=audio_channel,
+        )
+
         self.logic = RobotLogic(
             gpio=gpio,
-            i2c_pwm=i2c_pwm
+            i2c_pwm=i2c_pwm,
         )
 
         gestures_config = config.get("gestures", {})
@@ -67,6 +93,7 @@ class RobotController:
                 state=self.state,
                 window_name=preview_title,
             )
+
         self.i2c_pwm = i2c_pwm
 
         self.gestures_enabled = gestures_config.get("enabled", False)
@@ -91,12 +118,14 @@ class RobotController:
 
     async def run(self):
         self.camera_worker.start()
+        self.mic_worker.start()
         if self.gesture_worker is not None:
             self.gesture_worker.start()
 
         tasks = [
             asyncio.create_task(self.command_processor.run()),
             asyncio.create_task(self.camera_streamer.run()),
+            asyncio.create_task(self.audio_streamer.run()),
         ]
 
         if self.preview_enabled and self.camera_preview is not None:
@@ -125,3 +154,4 @@ class RobotController:
                 await self.gesture_worker.stop()
 
             await self.camera_worker.stop()
+            await self.mic_worker.stop()
