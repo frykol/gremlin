@@ -1,4 +1,7 @@
 import tkinter as tk
+import asyncio
+import threading
+import websockets
 
 from Camera_view import CameraView
 from GPIO_view import GpioView
@@ -12,6 +15,12 @@ class App(tk.Tk):
         self.title("Interface")
         self.geometry("1600x800")
 
+        # 🔥 WS SERVER STATE
+        self.clients = set()
+        self.loop = asyncio.new_event_loop()
+        threading.Thread(target=self.start_ws, daemon=True).start()
+
+        # ---------------- UI ----------------
         container = tk.Frame(self)
         container.pack(fill="both", expand=True)
 
@@ -19,7 +28,7 @@ class App(tk.Tk):
 
         self.frames["camera"] = CameraView(container)
         self.frames["gpio"] = GpioView(container)
-        self.frames["i2c"] = I2CView(container)
+        self.frames["i2c"] = I2CView(container, self)  # 👈 przekazujemy app
 
         for frame in self.frames.values():
             frame.place(relwidth=1, relheight=1)
@@ -36,6 +45,28 @@ class App(tk.Tk):
     def show(self, name):
         frame = self.frames[name]
         frame.tkraise()
+
+    # ================= WS SERVER =================
+
+    def start_ws(self):
+        asyncio.set_event_loop(self.loop)
+        self.loop.run_until_complete(self.ws_server())
+
+    async def handler(self, websocket):
+        self.clients.add(websocket)
+        print("Client connected:", websocket.remote_address)
+
+        try:
+            async for msg in websocket:
+                print("RX:", msg)
+        finally:
+            self.clients.remove(websocket)
+            print("Client disconnected")
+
+    async def ws_server(self):
+        async with websockets.serve(self.handler, "0.0.0.0", 8765):
+            print("WebSocket server running on 8765")
+            await asyncio.Future()
 
 
 if __name__ == "__main__":
