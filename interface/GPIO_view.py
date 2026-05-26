@@ -1,5 +1,7 @@
 import tkinter as tk
 import tkinter.font as tkFont
+import json
+import asyncio
 
 
 GPIO_PINS = {
@@ -20,14 +22,17 @@ GPIO_PINS = {
 
 
 class GpioView(tk.Frame):
-    def __init__(self, parent):
+    def __init__(self, parent, app):
         super().__init__(parent)
+
+        self.app = app  
 
         self.buttons = {}
         self.values = {}
         self.active_pin = None
 
         self.gpio_font = tkFont.Font(family="Arial", size=12, weight="bold")
+
 
         tk.Button(self, text="0", command=lambda: self.set_value(0)).place(
             relx=0.4, rely=0.05, relwidth=0.2, relheight=0.06
@@ -49,7 +54,7 @@ class GpioView(tk.Frame):
                 font=self.gpio_font,
                 state="normal" if pin in GPIO_PINS else "disabled",
                 command=lambda p=pin: self.set_active(p),
-                anchor="center",  
+                anchor="center",
                 padx=0,
                 pady=0
             )
@@ -66,6 +71,24 @@ class GpioView(tk.Frame):
 
             self.update_button(pin)
 
+
+    def send_gpio(self):
+        if self.active_pin is None:
+            return
+
+        data = {
+            "type": "gpio",
+            "pin_name": GPIO_PINS[self.active_pin],
+            "value": self.values[self.active_pin]
+        }
+
+        for ws in self.app.clients:
+            asyncio.run_coroutine_threadsafe(
+                ws.send(json.dumps(data)),
+                self.app.loop
+            )
+
+
     def set_active(self, pin):
         if pin not in GPIO_PINS:
             return
@@ -81,6 +104,8 @@ class GpioView(tk.Frame):
 
         self.values[self.active_pin] = value
         self.update_button(self.active_pin)
+
+        self.send_gpio()
 
     def update_button(self, pin):
         v = self.values[pin]

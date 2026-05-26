@@ -2,6 +2,7 @@ import tkinter as tk
 import asyncio
 import threading
 import websockets
+import json
 
 from Camera_view import CameraView
 from GPIO_view import GpioView
@@ -15,24 +16,25 @@ class App(tk.Tk):
         self.title("Interface")
         self.geometry("1600x800")
 
-        # 🔥 WS SERVER STATE
+        # ================= WS SERVER =================
         self.clients = set()
         self.loop = asyncio.new_event_loop()
         threading.Thread(target=self.start_ws, daemon=True).start()
 
-        # ---------------- UI ----------------
+        # ================= UI =================
         container = tk.Frame(self)
         container.pack(fill="both", expand=True)
 
         self.frames = {}
 
-        self.frames["camera"] = CameraView(container)
-        self.frames["gpio"] = GpioView(container)
-        self.frames["i2c"] = I2CView(container, self)  # 👈 przekazujemy app
+        self.frames["camera"] = CameraView(container, self)
+        self.frames["gpio"] = GpioView(container, self)
+        self.frames["i2c"] = I2CView(container, self)
 
         for frame in self.frames.values():
             frame.place(relwidth=1, relheight=1)
 
+        # ================= SIDEBAR =================
         sidebar = tk.Frame(self, bg="gray")
         sidebar.place(relx=0, rely=0, relwidth=0.2, relheight=1)
 
@@ -42,9 +44,10 @@ class App(tk.Tk):
 
         self.show("camera")
 
+    # ================= VIEW SWITCH =================
+
     def show(self, name):
-        frame = self.frames[name]
-        frame.tkraise()
+        self.frames[name].tkraise()
 
     # ================= WS SERVER =================
 
@@ -58,7 +61,20 @@ class App(tk.Tk):
 
         try:
             async for msg in websocket:
-                print("RX:", msg)
+                data = json.loads(msg)
+
+                # 🔥 CAMERA FRAME
+                if data.get("type") == "camera_frame":
+                    # ważne: Tkinter thread-safe
+                    self.after(0, self.frames["camera"].update_frame, data)
+
+                # DEBUG (opcjonalnie)
+                else:
+                    print("RX:", data)
+
+        except Exception as e:
+            print("WS error:", e)
+
         finally:
             self.clients.remove(websocket)
             print("Client disconnected")
