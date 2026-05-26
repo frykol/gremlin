@@ -1,16 +1,18 @@
 import gpiod
+from gpiod import LineRequest
 from gpiod.line import Direction, Value
 from src.config import load_config
 
 class GPIOController:
     def __init__(self):
-        self.gpio_config = load_config("config.json")["gpio"]
+        self.gpio_config: dict = load_config("config.json")["gpio"]
 
-        self.chip = self.gpio_config["chip"]
-        self.pins = self.gpio_config["pins"]
+        self.chip: str = self.gpio_config["chip"]
+        self.pins: dict = self.gpio_config["pins"]
+        self.standard_pins: dict = self.gpio_config["standard_pins"]
 
-        self.prepared = False
-        self.request = None
+        self.prepared: bool = False
+        self.request: gpiod.LineRequest | None = None
 
     def setup(self, active: bool = True) -> None:
         config = {}
@@ -28,11 +30,25 @@ class GPIOController:
         )
         self.prepared = True
 
-    def set_pin(self, pin_name: str, pin_state: bool) -> None:
+    def set_named_pin(self, pin_name: str, pin_state: bool) -> None:
+        if not self.request:
+            return
         if pin_name not in self.pins:
-            raise KeyError(f"Nieznany pin: {pin_name}")
+            raise KeyError(f"Nieznany nazwany pin: {pin_name}")
 
         value = Value.ACTIVE if pin_state else Value.INACTIVE
 
         self.request.set_value(self.pins[pin_name], value)
+    
+    def set_standard_pin(self, pin_name: str, pin_state: bool) -> None:
+        if not self.request:
+            return
+        if pin_name not in self.standard_pins:
+            raise KeyError(f"Nieznany standardowy pin: {pin_name}")
+
+        value = Value.ACTIVE if pin_state else Value.INACTIVE
+
+        self.request.set_value(self.standard_pins[pin_name], value)
+
+    
         
