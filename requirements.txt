@@ -1,5 +1,6 @@
 numpy
 opencv-python
+mediapipe
 gpiod
 smbus2
 websockets

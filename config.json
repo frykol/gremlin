@@ -1,5 +1,22 @@
 {
-  "dev" : true,
+  "laptop_mode": true,
+  "dev": false,
+  "websocket_uri": "ws://127.0.0.1:8765",
+  "gestures": {
+    "enabled": true,
+    "execute_commands": false,
+    "max_hands": 1,
+    "min_detection_confidence": 0.7,
+    "min_tracking_confidence": 0.7,
+    "window_title": "Niezawodne Sterowanie Robotem"
+  },
+  "webcam": {
+    "device": 0,
+    "width": 1280,
+    "height": 720,
+    "fps": 30,
+    "flip": true
+  },
   "gpio": {
     "chip": "/dev/gpiochip0",
     "pins":{
