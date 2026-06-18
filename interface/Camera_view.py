@@ -13,16 +13,14 @@ class CameraView(tk.Frame):
         super().__init__(parent)
 
         self.app = app
-        self.last_frame = None  # 🔥 do zapisu
+        self.last_frame = None  
 
-        # ================= SCREEN =================
         self.screen = tk.Frame(self, bg="lightblue", borderwidth=3, relief="ridge")
         self.screen.place(relx=0.3, rely=0.05, relheight=0.7, relwidth=0.6)
 
         self.image_label = tk.Label(self.screen)
         self.image_label.pack(fill="both", expand=True)
 
-        # ================= BUTTONS =================
         self.oak_d_button = tk.Button(self, text="OAK_D")
         self.oak_d_button.place(relx=0.3, rely=0.75, relheight=0.2, relwidth=0.3)
 
@@ -38,7 +36,6 @@ class CameraView(tk.Frame):
         self.capture_button = tk.Button(self, text="Capture", command=self.capture_frame)
         self.capture_button.place(relx=0.9, rely=0.15, relheight=0.05, relwidth=0.1)
 
-    # ================= WS SEND =================
 
     def send_stream(self, enabled):
         data = {
@@ -58,18 +55,14 @@ class CameraView(tk.Frame):
     def stop_stream(self):
         self.send_stream(False)
 
-    # ================= FRAME UPDATE =================
 
     def update_frame(self, data):
         try:
-            # dekodowanie base64 → obraz
             img_data = base64.b64decode(data["image"])
             image = Image.open(io.BytesIO(img_data))
 
-            # zapisz do capture
             self.last_frame = image
 
-            # dopasowanie do okna
             w = self.screen.winfo_width()
             h = self.screen.winfo_height()
 
@@ -84,7 +77,6 @@ class CameraView(tk.Frame):
         except Exception as e:
             print("Frame error:", e)
 
-    # ================= CAPTURE =================
 
     def capture_frame(self):
         if self.last_frame is None:

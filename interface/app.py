@@ -17,12 +17,10 @@ class App(tk.Tk):
         self.title("Interface")
         self.geometry("1600x800")
 
-        # ================= WS SERVER =================
         self.clients = set()
         self.loop = asyncio.new_event_loop()
         threading.Thread(target=self.start_ws, daemon=True).start()
 
-        # ================= UI =================
         container = tk.Frame(self)
         container.pack(fill="both", expand=True)
 
@@ -36,7 +34,6 @@ class App(tk.Tk):
         for frame in self.frames.values():
             frame.place(relwidth=1, relheight=1)
 
-        # ================= SIDEBAR =================
         sidebar = tk.Frame(self, bg="gray")
         sidebar.place(relx=0, rely=0, relwidth=0.2, relheight=1)
 
@@ -47,12 +44,10 @@ class App(tk.Tk):
 
         self.show("camera")
 
-    # ================= VIEW SWITCH =================
 
     def show(self, name):
         self.frames[name].tkraise()
 
-    # ================= WS SERVER =================
 
     def start_ws(self):
         asyncio.set_event_loop(self.loop)
@@ -66,7 +61,6 @@ class App(tk.Tk):
             async for msg in websocket:
                 data = json.loads(msg)
 
-                # 🔥 CAMERA FRAME
                 if data.get("type") == "camera_frame":
                     self.after(0, self.frames["camera"].update_frame, data)
 

@@ -7,13 +7,19 @@ class I2CView(tk.Frame):
     def __init__(self, parent, app):
         super().__init__(parent)
 
-        self.app = app  # 🔥 dostęp do servera
+        self.app = app  
 
         self.buttons = []
-        self.values = [0] * 16
+        self.values = [0] * 8  
         self.active_index = 0
 
-        # SLIDER 0–100 (mapowany na 0–4095)
+        labels = [
+            "LP przód", "LP tył",
+            "LT przód", "LT tył",
+            "PP przód", "PP tył",
+            "PT przód", "PT tył"
+        ]
+
         self.slider = tk.Scale(
             self,
             from_=0,
@@ -23,21 +29,27 @@ class I2CView(tk.Frame):
         )
         self.slider.place(relx=0.3, rely=0.05, relwidth=0.6, relheight=0.05)
 
-        # PRZYCISKI
-        for i in range(16):
+        tk.Button(self, text="0", command=lambda: self.slider.set(0)).place(
+            relx=0.4, rely=0.15, relwidth=0.2, relheight=0.06
+        )
+        tk.Button(self, text="1", command=lambda: self.slider.set(100)).place(
+            relx=0.6, rely=0.15, relwidth=0.2, relheight=0.06
+        )
+
+        for i, label_text in enumerate(labels):
             btn = tk.Button(
                 self,
-                text=str(i),
+                text=label_text,
                 command=lambda i=i: self.set_active(i)
             )
 
-            row = i // 4
-            col = i % 4
+            row = i // 2
+            col = i % 2
 
             btn.place(
-                relx=0.4 + col * 0.1,
-                rely=0.15 + row * 0.15,
-                relwidth=0.08,
+                relx=0.4 + col * 0.20,
+                rely=0.25 + row * 0.12,
+                relwidth=0.2,
                 relheight=0.1
             )
 
@@ -46,7 +58,6 @@ class I2CView(tk.Frame):
 
         self.slider.set(0)
 
-    # ================= SEND =================
 
     def send_motor(self):
         data = {
@@ -61,7 +72,6 @@ class I2CView(tk.Frame):
                 self.app.loop
             )
 
-    # ================= UI =================
 
     def set_active(self, index):
         self.active_index = index
@@ -76,8 +86,7 @@ class I2CView(tk.Frame):
 
         self.values[self.active_index] = v
         self.update_button(self.active_index)
-
-        # 🔥 wysyłka do Raspberry
+        
         self.send_motor()
 
     def update_button(self, index):
