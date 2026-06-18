@@ -14,10 +14,10 @@ class I2CView(tk.Frame):
         self.active_index = 0
 
         labels = [
-            "LP przód", "LP tył",
-            "LT przód", "LT tył",
-            "PP przód", "PP tył",
-            "PT przód", "PT tył"
+            "LP tył", "LP przód",
+            "LT tył", "LT przód",
+            "PP tył", "PP przód",
+            "PT tył", "PT przód"
         ]
 
         self.slider = tk.Scale(
@@ -47,7 +47,7 @@ class I2CView(tk.Frame):
             col = i % 2
 
             btn.place(
-                relx=0.4 + col * 0.20,
+                relx=0.3 + col * 0.25,
                 rely=0.25 + row * 0.12,
                 relwidth=0.2,
                 relheight=0.1
@@ -72,6 +72,19 @@ class I2CView(tk.Frame):
                 self.app.loop
             )
 
+    def send_motor_stop(self, channel):
+        data = {
+            "type": "motor",
+            "channel": channel,
+            "pwm": 0
+        }
+
+        for ws in self.app.clients:
+            asyncio.run_coroutine_threadsafe(
+                ws.send(json.dumps(data)),
+                self.app.loop
+            )
+
 
     def set_active(self, index):
         self.active_index = index
@@ -84,9 +97,22 @@ class I2CView(tk.Frame):
     def on_change(self, value):
         v = int(float(value))
 
+        if v > 0:
+
+            opposite_index = self.active_index ^ 1 
+            
+            if self.values[opposite_index] > 0:
+
+                self.values[opposite_index] = 0
+                self.update_button(opposite_index)
+                
+
+                self.send_motor_stop(opposite_index)
+
+
         self.values[self.active_index] = v
         self.update_button(self.active_index)
-        
+
         self.send_motor()
 
     def update_button(self, index):
