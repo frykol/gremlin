@@ -14,8 +14,8 @@ class I2CView(tk.Frame):
         self.active_index = 0
 
         labels = [
-            "LP tył", "LP przód",
-            "LT tył", "LT przód",
+            "LP przód", "LP tył",
+            "LT przód", "LT tył",
             "PP tył", "PP przód",
             "PT tył", "PT przód"
         ]
