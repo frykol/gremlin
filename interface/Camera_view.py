@@ -7,13 +7,13 @@ import io
 import time
 import os
 
-
 class CameraView(tk.Frame):
     def __init__(self, parent, app):
         super().__init__(parent)
 
         self.app = app
         self.last_frame = None  
+        self.rotated = False  # Zmienna stanu obrotu
 
         self.screen = tk.Frame(self, bg="lightblue", borderwidth=3, relief="ridge")
         self.screen.place(relx=0.3, rely=0.05, relheight=0.7, relwidth=0.6)
@@ -27,6 +27,10 @@ class CameraView(tk.Frame):
         self.lidar_button = tk.Button(self, text="Lidar", state="disabled")
         self.lidar_button.place(relx=0.6, rely=0.75, relheight=0.2, relwidth=0.3)
 
+        # Nowy przycisk obrotu
+        self.rotate_button = tk.Button(self, text="Obrót 180°", command=self.toggle_rotate)
+        self.rotate_button.place(relx=0.05, rely=0.75, relheight=0.1, relwidth=0.2)
+
         self.start_button = tk.Button(self, text="Start", command=self.start_stream)
         self.start_button.place(relx=0.9, rely=0.05, relheight=0.05, relwidth=0.1)
 
@@ -36,6 +40,16 @@ class CameraView(tk.Frame):
         self.capture_button = tk.Button(self, text="Capture", command=self.capture_frame)
         self.capture_button.place(relx=0.9, rely=0.15, relheight=0.05, relwidth=0.1)
 
+    def toggle_rotate(self):
+        """Zmienia stan obrotu i wysyła komendę do robota."""
+        self.rotated = not self.rotated
+        
+        # Opcjonalnie wysyłamy komendę przez websocket
+        data = {"type": "rotate", "value": self.rotated}
+        for ws in self.app.clients:
+            asyncio.run_coroutine_threadsafe(ws.send(json.dumps(data)), self.app.loop)
+        
+        print(f"Obrót kamery: {'WŁ' if self.rotated else 'WYŁ'}")
 
     def send_stream(self, enabled):
         data = {
@@ -55,11 +69,14 @@ class CameraView(tk.Frame):
     def stop_stream(self):
         self.send_stream(False)
 
-
     def update_frame(self, data):
         try:
             img_data = base64.b64decode(data["image"])
             image = Image.open(io.BytesIO(img_data))
+
+            # Jeśli tryb obrotu jest aktywny, obracamy klatkę lokalnie
+            if self.rotated:
+                image = image.rotate(180)
 
             self.last_frame = image
 
@@ -76,7 +93,6 @@ class CameraView(tk.Frame):
 
         except Exception as e:
             print("Frame error:", e)
-
 
     def capture_frame(self):
         if self.last_frame is None:
