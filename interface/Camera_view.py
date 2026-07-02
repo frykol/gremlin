@@ -28,8 +28,8 @@ class CameraView(tk.Frame):
         self.lidar_button.place(relx=0.6, rely=0.75, relheight=0.2, relwidth=0.3)
 
         # Nowy przycisk obrotu
-        self.rotate_button = tk.Button(self, text="Obrót 180°", command=self.toggle_rotate)
-        self.rotate_button.place(relx=0.05, rely=0.75, relheight=0.1, relwidth=0.2)
+        self.rotate_button = tk.Button(self, text="O", command=self.toggle_rotate)
+        self.rotate_button.place(relx=0.9, rely=0.2, relheight=0.05, relwidth=0.1)
 
         self.start_button = tk.Button(self, text="Start", command=self.start_stream)
         self.start_button.place(relx=0.9, rely=0.05, relheight=0.05, relwidth=0.1)
