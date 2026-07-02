@@ -7,7 +7,6 @@ class ControlView(tk.Frame):
         super().__init__(parent)
         self.app = app  
 
-        # Mapowanie kierunków na konkretne kanały
         self.directions = {
             "Przód": [0, 2, 5, 7],
             "Tył":   [1, 3, 4, 6],
@@ -17,18 +16,16 @@ class ControlView(tk.Frame):
 
         self.active_directions = set()
         
-        # Pamięć ostatnio wysłanego stanu (zapobiega spamowaniu sieci)
-        # Inicjalizujemy wartościami -1, aby pierwszy wysłany stan (nawet same zera) zawsze przeszedł
+        self._release_timers = {}
+        
         self.last_sent_values = {i: -1 for i in range(8)}
         
-        # Etykieta statusu w oknie aplikacji
         self.status_label = tk.Label(
             self, text="NIEAKTYWNY", bg="red", fg="white", 
             font=("Arial", 14, "bold"), relief="ridge", bd=4
         )
         self.status_label.place(relx=0.3, rely=0.02, relwidth=0.6, relheight=0.12)
 
-        # Suwak regulacji mocy
         self.power_slider = tk.Scale(
             self, from_=0, to=100, orient="horizontal", 
             label="Moc silników (%)", command=self.on_slider_change
@@ -36,7 +33,6 @@ class ControlView(tk.Frame):
         self.power_slider.set(100) 
         self.power_slider.place(relx=0.3, rely=0.16, relwidth=0.6, relheight=0.15)
 
-        # Tworzenie przycisków interfejsu
         self.buttons = {}
         coords = {"Przód": (0.5, 0.35), "Tył": (0.5, 0.65), "Lewo": (0.3, 0.50), "Prawo": (0.7, 0.50)}
         for name, (rx, ry) in coords.items():
@@ -46,7 +42,6 @@ class ControlView(tk.Frame):
             btn.bind("<ButtonRelease-1>", lambda e, d=name: self.on_release(d))
             self.buttons[name] = btn
 
-        # Bindy klawiatury
         top = self.winfo_toplevel()
         keys = {"<KeyPress-Up>": "Przód", "<KeyRelease-Up>": "Przód", 
                 "<KeyPress-Down>": "Tył", "<KeyRelease-Down>": "Tył",
@@ -69,7 +64,6 @@ class ControlView(tk.Frame):
     def update_all_motors(self):
         pwm_val = self.get_current_pwm()
         
-        # Pary kanałów dla silników: (kanał_przód, kanał_tył, nazwa_silnika)
         motor_pairs = [
             (0, 1, "M1 (Lewy Przód)"),
             (2, 3, "M2 (Lewy Tył)  "),
@@ -80,16 +74,17 @@ class ControlView(tk.Frame):
         channel_values = {i: 0 for i in range(8)}
         diagnostic_rows = []
         
-        # Obliczamy wypadkowy sygnał dla każdego silnika
+
         for f_ch, b_ch, motor_name in motor_pairs:
             net_signal = 0
             
+
             for direction in self.active_directions:
                 if f_ch in self.directions[direction]:
                     net_signal += pwm_val
                 if b_ch in self.directions[direction]:
                     net_signal -= pwm_val
-            
+
             if net_signal > 0:
                 channel_values[f_ch] = min(net_signal, pwm_val)
                 channel_values[b_ch] = 0
@@ -107,14 +102,11 @@ class ControlView(tk.Frame):
                 f"{motor_name} -> Ch{f_ch}: {channel_values[f_ch]:<4} | Ch{b_ch}: {channel_values[b_ch]:<4} | Status: {status}"
             )
 
-        # BLOKADA DUPLIKATÓW: Jeśli stan się nie zmienił, przerywamy funkcję
         if channel_values == self.last_sent_values:
             return
 
-        # Zapamiętujemy nowy stan jako wysłany
         self.last_sent_values = channel_values.copy()
 
-        # WIZUALNY WIDOK TESTOWY W KONSOLI (wykona się tylko przy realnej zmianie)
         print("\n=================== MONITOR SYGNAŁÓW TESTOWYCH ===================")
         print(f"Aktywne klawisze/kierunki : {list(self.active_directions) if self.active_directions else 'BRAK'}")
         print(f"Aktualna moc maksymalna    : {self.power_slider.get()}% (PWM: {pwm_val})")
@@ -123,25 +115,44 @@ class ControlView(tk.Frame):
             print(row)
         print("===================================================================\n")
 
-        # Wysyłanie danych do sterownika
+ 
         for ch, pwm in channel_values.items():
             self.send_motor_data(ch, pwm)
 
     def on_press(self, direction):
+
+        if direction in self._release_timers:
+            self.after_cancel(self._release_timers[direction])
+            del self._release_timers[direction]
+            
         if direction in self.active_directions:
             return
+        
         self.active_directions.add(direction)
         self.status_label.config(text=f"AKTYWNE: {','.join(self.active_directions)}", bg="green")
         self.update_all_motors()
 
     def on_release(self, direction):
+
+        if direction in self._release_timers:
+            self.after_cancel(self._release_timers[direction])
+            
+        self._release_timers[direction] = self.after(20, lambda: self._execute_release(direction))
+
+    def _execute_release(self, direction):
+        if direction in self._release_timers:
+            del self._release_timers[direction]
+            
         if direction not in self.active_directions:
             return
+            
         self.active_directions.remove(direction)
+        
         if not self.active_directions:
             self.status_label.config(text="NIEAKTYWNY", bg="red")
         else:
             self.status_label.config(text=f"AKTYWNE: {','.join(self.active_directions)}", bg="green")
+        
         self.update_all_motors()
 
     def on_slider_change(self, value):
