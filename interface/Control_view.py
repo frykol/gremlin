@@ -7,25 +7,28 @@ class ControlView(tk.Frame):
         super().__init__(parent)
         self.app = app  
 
+        # Mapowanie kierunków na konkretne kanały
         self.directions = {
             "Przód": [0, 2, 5, 7],
             "Tył":   [1, 3, 4, 6],
             "Prawo": [0, 2, 4, 6],
-            "Lewo":  [1, 3, 5, 7]
+            "Lewo":  [1, 3, 5, 7],
+            "Full lewo": [1, 2, 5, 6],
+            "Full prawo": [0, 3, 4, 7]
         }
 
         self.active_directions = set()
-        
         self._release_timers = {}
-        
         self.last_sent_values = {i: -1 for i in range(8)}
         
+        # Etykieta statusu w oknie aplikacji
         self.status_label = tk.Label(
             self, text="NIEAKTYWNY", bg="red", fg="white", 
             font=("Arial", 14, "bold"), relief="ridge", bd=4
         )
         self.status_label.place(relx=0.3, rely=0.02, relwidth=0.6, relheight=0.12)
 
+        # Suwak regulacji mocy
         self.power_slider = tk.Scale(
             self, from_=0, to=100, orient="horizontal", 
             label="Moc silników (%)", command=self.on_slider_change
@@ -33,20 +36,35 @@ class ControlView(tk.Frame):
         self.power_slider.set(100) 
         self.power_slider.place(relx=0.3, rely=0.16, relwidth=0.6, relheight=0.15)
 
+        # Nowe współrzędne - tryby FULL umieszczone bezpośrednio pod zwykłymi strzałkami
         self.buttons = {}
-        coords = {"Przód": (0.5, 0.35), "Tył": (0.5, 0.65), "Lewo": (0.3, 0.50), "Prawo": (0.7, 0.50)}
+        coords = {
+            "Przód":      (0.5, 0.35),
+            "Lewo":       (0.3, 0.45),
+            "Prawo":      (0.7, 0.45),
+            "Full lewo":  (0.3, 0.60),
+            "Full prawo": (0.7, 0.60),
+            "Tył":        (0.5, 0.65)
+        }
+        
         for name, (rx, ry) in coords.items():
-            btn = tk.Button(self, text=name)
-            btn.place(relx=rx, rely=ry, relwidth=0.2, relheight=0.15)
+            btn = tk.Button(self, text=name, font=("Arial", 9, "bold") if "Full" in name else ("Arial", 9))
+            btn.place(relx=rx, rely=ry, relwidth=0.16, relheight=0.12)
             btn.bind("<ButtonPress-1>", lambda e, d=name: self.on_press(d))
             btn.bind("<ButtonRelease-1>", lambda e, d=name: self.on_release(d))
             self.buttons[name] = btn
 
+        # Bindy klawiatury systemowej
         top = self.winfo_toplevel()
-        keys = {"<KeyPress-Up>": "Przód", "<KeyRelease-Up>": "Przód", 
-                "<KeyPress-Down>": "Tył", "<KeyRelease-Down>": "Tył",
-                "<KeyPress-Left>": "Lewo", "<KeyRelease-Left>": "Lewo",
-                "<KeyPress-Right>": "Prawo", "<KeyRelease-Right>": "Prawo"}
+        keys = {
+            "<KeyPress-Up>": "Przód", "<KeyRelease-Up>": "Przód", 
+            "<KeyPress-Down>": "Tył", "<KeyRelease-Down>": "Tył",
+            "<KeyPress-Left>": "Lewo", "<KeyRelease-Left>": "Lewo",
+            "<KeyPress-Right>": "Prawo", "<KeyRelease-Right>": "Prawo",
+            "<Shift-KeyPress-Left>": "Full lewo", "<Shift-KeyRelease-Left>": "Full lewo",
+            "<Shift-KeyPress-Right>": "Full prawo", "<Shift-KeyRelease-Right>": "Full prawo"
+        }
+        
         for key, name in keys.items():
             if "Press" in key:
                 top.bind(key, lambda e, d=name: self.on_press(d))
@@ -74,17 +92,15 @@ class ControlView(tk.Frame):
         channel_values = {i: 0 for i in range(8)}
         diagnostic_rows = []
         
-
         for f_ch, b_ch, motor_name in motor_pairs:
             net_signal = 0
             
-
             for direction in self.active_directions:
                 if f_ch in self.directions[direction]:
                     net_signal += pwm_val
                 if b_ch in self.directions[direction]:
                     net_signal -= pwm_val
-
+            
             if net_signal > 0:
                 channel_values[f_ch] = min(net_signal, pwm_val)
                 channel_values[b_ch] = 0
@@ -115,12 +131,10 @@ class ControlView(tk.Frame):
             print(row)
         print("===================================================================\n")
 
- 
         for ch, pwm in channel_values.items():
             self.send_motor_data(ch, pwm)
 
     def on_press(self, direction):
-
         if direction in self._release_timers:
             self.after_cancel(self._release_timers[direction])
             del self._release_timers[direction]
@@ -133,11 +147,19 @@ class ControlView(tk.Frame):
         self.update_all_motors()
 
     def on_release(self, direction):
-
         if direction in self._release_timers:
             self.after_cancel(self._release_timers[direction])
             
         self._release_timers[direction] = self.after(20, lambda: self._execute_release(direction))
+
+        if direction == "Lewo":
+            if "Full lewo" in self._release_timers:
+                self.after_cancel(self._release_timers["Full lewo"])
+            self._release_timers["Full lewo"] = self.after(20, lambda: self._execute_release("Full lewo"))
+        elif direction == "Prawo":
+            if "Full prawo" in self._release_timers:
+                self.after_cancel(self._release_timers["Full prawo"])
+            self._release_timers["Full prawo"] = self.after(20, lambda: self._execute_release("Full prawo"))
 
     def _execute_release(self, direction):
         if direction in self._release_timers:
