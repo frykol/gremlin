@@ -44,7 +44,6 @@ class CameraView(tk.Frame):
         """Zmienia stan obrotu i wysyła komendę do robota."""
         self.rotated = not self.rotated
         
-        # Opcjonalnie wysyłamy komendę przez websocket
         data = {"type": "rotate", "value": self.rotated}
         for ws in self.app.clients:
             asyncio.run_coroutine_threadsafe(ws.send(json.dumps(data)), self.app.loop)
@@ -69,10 +68,11 @@ class CameraView(tk.Frame):
     def stop_stream(self):
         self.send_stream(False)
 
-    def update_frame(self, data):
+    def update_frame(self, jpeg_bytes):
+        """Odbiera surowe bajty JPEG z gniazda UDP."""
         try:
-            img_data = base64.b64decode(data["image"])
-            image = Image.open(io.BytesIO(img_data))
+            # Otwieramy strumień bajtów bezpośrednio w PIL, bez powolnego base64
+            image = Image.open(io.BytesIO(jpeg_bytes))
 
             # Jeśli tryb obrotu jest aktywny, obracamy klatkę lokalnie
             if self.rotated:
