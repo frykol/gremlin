@@ -1,6 +1,7 @@
 import asyncio
 
 from src.dev_connection.interface import WSClientInterface
+from src.dev_connection.udp_frame_sender import UdpFrameSender
 from src.hardware.gpio.gpio_controller import GPIOController
 from src.hardware.i2c.i2c_pwm import i2cPWM
 from src.hardware.oak_d.interface import CameraInterface
@@ -39,9 +40,16 @@ class RobotController:
 
         fps = config.get("fps") or 15
 
+        camera_stream_config = config.get("camera_stream", {})
+
+        self.udp_frame_sender = UdpFrameSender(
+            host=camera_stream_config.get("udp_host", "192.168.1.162"),
+            port=camera_stream_config.get("udp_port", 8766),
+            chunk_size=camera_stream_config.get("chunk_size", 1400),
+        )
+
         self.camera_streamer = CameraStreamer(
-            #camera=camera,
-            ws=ws,
+            udp_sender=self.udp_frame_sender,
             state=self.state,
             fps=fps
         )
@@ -85,3 +93,4 @@ class RobotController:
 
             await self.camera_worker.stop()
             await self.mic_worker.stop()
+            self.udp_frame_sender.close()

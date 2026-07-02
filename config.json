@@ -22,9 +22,14 @@
     }
   },
   "oak_d": {
-    "width": 1280,
-    "height": 720,
+    "width": 800,
+    "height": 600,
     "fps": 30
+  },
+  "camera_stream": {
+    "udp_host": "192.168.1.162",
+    "udp_port": 8766,
+    "chunk_size": 1400
   },
   "respeaker": {
     "sample_rate": 16000,

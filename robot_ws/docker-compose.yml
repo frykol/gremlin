@@ -1,0 +1,19 @@
+services:
+  robot:
+    build: .
+    image: gremlin/robot_ws:latest
+    container_name: robot_ws
+    network_mode: host
+    privileged: true
+    stdin_open: true
+    tty: true
+    environment:
+      - ROS_DOMAIN_ID=0
+    volumes:
+      - ./ros2_ws:/ros2_ws
+      - /dev:/dev
+    devices:
+      - /dev/gpiochip0
+      - /dev/i2c-1
+    device_cgroup_rules:
+      - "c 189:* rmw"
