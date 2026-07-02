@@ -8,6 +8,7 @@ from Camera_view import CameraView
 from Mic_view import MicView
 from GPIO_view import GpioView
 from I2C_view import I2CView
+from Control_view import ControlView
 
 
 class App(tk.Tk):
@@ -30,6 +31,7 @@ class App(tk.Tk):
         self.frames["mic"] = MicView(container, self)
         self.frames["gpio"] = GpioView(container, self)
         self.frames["i2c"] = I2CView(container, self)
+        self.frames["control"] = ControlView(container, self)
 
         for frame in self.frames.values():
             frame.place(relwidth=1, relheight=1)
@@ -41,6 +43,7 @@ class App(tk.Tk):
         tk.Button(sidebar, text="Mikrofon", command=lambda: self.show("mic")).pack(fill="x")
         tk.Button(sidebar, text="GPIO", command=lambda: self.show("gpio")).pack(fill="x")
         tk.Button(sidebar, text="I2C PWM", command=lambda: self.show("i2c")).pack(fill="x")
+        tk.Button(sidebar, text="Control", command=lambda: self.show("control")).pack(fill="x")
 
         self.show("camera")
 

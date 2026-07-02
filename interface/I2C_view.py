@@ -47,8 +47,8 @@ class I2CView(tk.Frame):
             col = i % 2
 
             btn.place(
-                relx=0.3 + col * 0.25,
-                rely=0.25 + row * 0.12,
+                relx=0.4 + col * 0.2,
+                rely=0.25 + row * 0.1,
                 relwidth=0.2,
                 relheight=0.1
             )
