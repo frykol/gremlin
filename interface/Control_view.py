@@ -7,6 +7,7 @@ class ControlView(tk.Frame):
         super().__init__(parent)
         self.app = app  
 
+        # Mapowanie kierunków na konkretne kanały
         self.directions = {
             "Przód": [0, 2, 5, 7],
             "Tył":   [1, 3, 4, 6],
@@ -14,143 +15,134 @@ class ControlView(tk.Frame):
             "Lewo":  [1, 3, 5, 7]
         }
 
-        self.current_active = None
-        self._release_job = None  # Zmienna przechowująca zadanie opóźnionego wyłączenia (debounce)
+        self.active_directions = set()
         
+        # Pamięć ostatnio wysłanego stanu (zapobiega spamowaniu sieci)
+        # Inicjalizujemy wartościami -1, aby pierwszy wysłany stan (nawet same zera) zawsze przeszedł
+        self.last_sent_values = {i: -1 for i in range(8)}
+        
+        # Etykieta statusu w oknie aplikacji
         self.status_label = tk.Label(
-            self, 
-            text="NIEAKTYWNY", 
-            bg="red", 
-            fg="white", 
-            font=("Arial", 14, "bold"),
-            relief="ridge",
-            bd=4
+            self, text="NIEAKTYWNY", bg="red", fg="white", 
+            font=("Arial", 14, "bold"), relief="ridge", bd=4
         )
         self.status_label.place(relx=0.3, rely=0.02, relwidth=0.6, relheight=0.12)
 
+        # Suwak regulacji mocy
         self.power_slider = tk.Scale(
-            self,
-            from_=0,
-            to=100,
-            orient="horizontal",
-            label="Moc silników (%)",
-            command=self.on_slider_change
+            self, from_=0, to=100, orient="horizontal", 
+            label="Moc silników (%)", command=self.on_slider_change
         )
         self.power_slider.set(100) 
         self.power_slider.place(relx=0.3, rely=0.16, relwidth=0.6, relheight=0.15)
 
+        # Tworzenie przycisków interfejsu
         self.buttons = {}
-        self.default_bg = self.cget("bg")
+        coords = {"Przód": (0.5, 0.35), "Tył": (0.5, 0.65), "Lewo": (0.3, 0.50), "Prawo": (0.7, 0.50)}
+        for name, (rx, ry) in coords.items():
+            btn = tk.Button(self, text=name)
+            btn.place(relx=rx, rely=ry, relwidth=0.2, relheight=0.15)
+            btn.bind("<ButtonPress-1>", lambda e, d=name: self.on_press(d))
+            btn.bind("<ButtonRelease-1>", lambda e, d=name: self.on_release(d))
+            self.buttons[name] = btn
 
-        self.buttons["Przód"] = tk.Button(self, text="Przód")
-        self.buttons["Przód"].place(relx=0.5, rely=0.35, relwidth=0.2, relheight=0.15)
-
-        self.buttons["Tył"] = tk.Button(self, text="Tył")
-        self.buttons["Tył"].place(relx=0.5, rely=0.65, relwidth=0.2, relheight=0.15)
-
-        self.buttons["Lewo"] = tk.Button(self, text="Lewo")
-        self.buttons["Lewo"].place(relx=0.3, rely=0.50, relwidth=0.2, relheight=0.15)
-
-        self.buttons["Prawo"] = tk.Button(self, text="Prawo")
-        self.buttons["Prawo"].place(relx=0.7, rely=0.50, relwidth=0.2, relheight=0.15)
-
-        for direction, btn in self.buttons.items():
-            btn.bind("<ButtonPress-1>", lambda e, d=direction: self.on_press(d))
-            btn.bind("<ButtonRelease-1>", lambda e, d=direction: self.on_release(d))
-
-        top_level = self.winfo_toplevel()
-        
-        top_level.bind("<KeyPress-Up>", lambda e: self.on_press("Przód"))
-        top_level.bind("<KeyRelease-Up>", lambda e: self.on_release("Przód"))
-        
-        top_level.bind("<KeyPress-Down>", lambda e: self.on_press("Tył"))
-        top_level.bind("<KeyRelease-Down>", lambda e: self.on_release("Tył"))
-        
-        top_level.bind("<KeyPress-Left>", lambda e: self.on_press("Lewo"))
-        top_level.bind("<KeyRelease-Left>", lambda e: self.on_release("Lewo"))
-        
-        top_level.bind("<KeyPress-Right>", lambda e: self.on_press("Prawo"))
-        top_level.bind("<KeyRelease-Right>", lambda e: self.on_release("Prawo"))
+        # Bindy klawiatury
+        top = self.winfo_toplevel()
+        keys = {"<KeyPress-Up>": "Przód", "<KeyRelease-Up>": "Przód", 
+                "<KeyPress-Down>": "Tył", "<KeyRelease-Down>": "Tył",
+                "<KeyPress-Left>": "Lewo", "<KeyRelease-Left>": "Lewo",
+                "<KeyPress-Right>": "Prawo", "<KeyRelease-Right>": "Prawo"}
+        for key, name in keys.items():
+            if "Press" in key:
+                top.bind(key, lambda e, d=name: self.on_press(d))
+            else:
+                top.bind(key, lambda e, d=name: self.on_release(d))
 
     def get_current_pwm(self):
-        percent = self.power_slider.get()
-        return int((percent / 100.0) * 4095)
+        return int((self.power_slider.get() / 100.0) * 4095)
 
     def send_motor_data(self, channel, pwm):
-        data = {
-            "type": "motor",
-            "channel": channel,
-            "pwm": pwm
-        }
+        data = {"type": "motor", "channel": channel, "pwm": pwm}
         for ws in self.app.clients:
-            asyncio.run_coroutine_threadsafe(
-                ws.send(json.dumps(data)),
-                self.app.loop
-            )
+            asyncio.run_coroutine_threadsafe(ws.send(json.dumps(data)), self.app.loop)
 
-    def stop_all_motors(self):
-        for i in range(8):
-            self.send_motor_data(i, 0)
-
-    def on_press(self, direction):
-        # 1. Jeśli było zaplanowane wyłączenie (z auto-repeatu), anuluj je
-        if self._release_job is not None:
-            self.after_cancel(self._release_job)
-            self._release_job = None
-
-        # 2. Blokada przed ciągłym wysyłaniem sygnału startu
-        if self.current_active == direction:
-            return
-        
-        self.stop_all_motors()
-        self.current_active = direction
-        
-        self.buttons[direction].config(bg="#a6a6a6", relief="sunken")
-        self.status_label.config(text=f"AKTYWNY ({direction.upper()})", bg="green")
-        
-        channels = self.directions[direction]
+    def update_all_motors(self):
         pwm_val = self.get_current_pwm()
         
-        print(f"[+] Wciśnięto przycisk/klawisz: {direction.upper()}")
-        print(f"    Aktywowane kanały: {channels} | Wartość PWM: {pwm_val} ({self.power_slider.get()}%)")
-        print(f"    Wysyłanie sygnałów do klientów...")
-        print("-" * 40)
+        # Pary kanałów dla silników: (kanał_przód, kanał_tył, nazwa_silnika)
+        motor_pairs = [
+            (0, 1, "M1 (Lewy Przód)"),
+            (2, 3, "M2 (Lewy Tył)  "),
+            (5, 4, "M3 (Prawy Przód)"),
+            (7, 6, "M4 (Prawy Tył) ")
+        ]
         
-        for ch in channels:
-            self.send_motor_data(ch, pwm_val)
+        channel_values = {i: 0 for i in range(8)}
+        diagnostic_rows = []
+        
+        # Obliczamy wypadkowy sygnał dla każdego silnika
+        for f_ch, b_ch, motor_name in motor_pairs:
+            net_signal = 0
+            
+            for direction in self.active_directions:
+                if f_ch in self.directions[direction]:
+                    net_signal += pwm_val
+                if b_ch in self.directions[direction]:
+                    net_signal -= pwm_val
+            
+            if net_signal > 0:
+                channel_values[f_ch] = min(net_signal, pwm_val)
+                channel_values[b_ch] = 0
+                status = f"PRZÓD ({channel_values[f_ch]})"
+            elif net_signal < 0:
+                channel_values[f_ch] = 0
+                channel_values[b_ch] = min(abs(net_signal), pwm_val)
+                status = f"TYŁ ({channel_values[b_ch]})"
+            else:
+                channel_values[f_ch] = 0
+                channel_values[b_ch] = 0
+                status = "STOP (Zneutralizowany / Brak)"
+
+            diagnostic_rows.append(
+                f"{motor_name} -> Ch{f_ch}: {channel_values[f_ch]:<4} | Ch{b_ch}: {channel_values[b_ch]:<4} | Status: {status}"
+            )
+
+        # BLOKADA DUPLIKATÓW: Jeśli stan się nie zmienił, przerywamy funkcję
+        if channel_values == self.last_sent_values:
+            return
+
+        # Zapamiętujemy nowy stan jako wysłany
+        self.last_sent_values = channel_values.copy()
+
+        # WIZUALNY WIDOK TESTOWY W KONSOLI (wykona się tylko przy realnej zmianie)
+        print("\n=================== MONITOR SYGNAŁÓW TESTOWYCH ===================")
+        print(f"Aktywne klawisze/kierunki : {list(self.active_directions) if self.active_directions else 'BRAK'}")
+        print(f"Aktualna moc maksymalna    : {self.power_slider.get()}% (PWM: {pwm_val})")
+        print("------------------------------------------------------------------")
+        for row in diagnostic_rows:
+            print(row)
+        print("===================================================================\n")
+
+        # Wysyłanie danych do sterownika
+        for ch, pwm in channel_values.items():
+            self.send_motor_data(ch, pwm)
+
+    def on_press(self, direction):
+        if direction in self.active_directions:
+            return
+        self.active_directions.add(direction)
+        self.status_label.config(text=f"AKTYWNE: {','.join(self.active_directions)}", bg="green")
+        self.update_all_motors()
 
     def on_release(self, direction):
-        if self.current_active != direction:
+        if direction not in self.active_directions:
             return
-            
-        # Zamiast wyłączać natychmiast, zlecamy wyłączenie za 50 ms.
-        # Jeśli to auto-repeat, system zdąży w ciągu 1-5 ms wywołać on_press i anulować to wyłączenie.
-        if self._release_job is not None:
-            self.after_cancel(self._release_job)
-        
-        self._release_job = self.after(50, lambda: self._execute_release(direction))
-
-    def _execute_release(self, direction):
-        """Właściwa funkcja wyłączająca silniki, uruchamiana, jeśli nie było wznowienia klawisza."""
-        self._release_job = None
-        
-        # Ostatnie sprawdzenie zabezpieczające
-        if self.current_active != direction:
-            return
-
-        self.current_active = None
-        self.stop_all_motors()
-        
-        self.buttons[direction].config(bg=self.default_bg, relief="raised")
-        self.status_label.config(text="NIEAKTYWNY", bg="red")
-
-        print(f"[-] Puszczono przycisk/klawisz: {direction.upper()}")
-        print(f"    Wysłano sygnał stopu (PWM: 0) na wszystkie 8 kanałów.")
-        print("-" * 40)
+        self.active_directions.remove(direction)
+        if not self.active_directions:
+            self.status_label.config(text="NIEAKTYWNY", bg="red")
+        else:
+            self.status_label.config(text=f"AKTYWNE: {','.join(self.active_directions)}", bg="green")
+        self.update_all_motors()
 
     def on_slider_change(self, value):
-        if self.current_active:
-            pwm_val = self.get_current_pwm()
-            channels = self.directions[self.current_active]
-            for ch in channels:
-                self.send_motor_data(ch, pwm_val)
+        self.update_all_motors()
