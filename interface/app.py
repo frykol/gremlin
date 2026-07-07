@@ -6,6 +6,7 @@ import json
 import struct
 import time
 import sys
+import base64
 
 from Camera_view import CameraView
 from Mic_view import MicView
@@ -13,26 +14,6 @@ from GPIO_view import GpioView
 from I2C_view import I2CView
 from Control_view import ControlView
 from Log_view import LogView
-
-
-class StdStreamRedirector:
-    def __init__(self, app, log_level, original_stream):
-        self.app = app
-        self.log_level = log_level
-        self.original_stream = original_stream
-        self.buffer = ""
-
-    def write(self, message):
-        self.original_stream.write(message)
-        
-        self.buffer += message
-        while "\n" in self.buffer:
-            line, self.buffer = self.buffer.split("\n", 1)
-            if line.strip() and "log" in self.app.frames:
-                self.app.after(0, self.app.frames["log"]._safe_append, line, self.log_level)
-
-    def flush(self):
-        self.original_stream.flush()
 
 
 class UDPCameraProtocol(asyncio.DatagramProtocol):
@@ -112,11 +93,11 @@ class App(tk.Tk):
         self.frames["control"] = ControlView(container, self)
         self.frames["log"] = LogView(container, self)
 
-        sys.stdout = StdStreamRedirector(self, "INFO", sys.stdout)
-        sys.stderr = StdStreamRedirector(self, "ERROR", sys.stderr)
-
-        for frame in self.frames.values():
-            frame.place(relx=0.2, rely=0, relwidth=0.8, relheight=1)
+        for name, frame in self.frames.items():
+            if name == "log":
+                frame.place(relx=0.2, rely=0, relwidth=0.8, relheight=1)
+            else:
+                frame.place(relx=0, rely=0, relwidth=1, relheight=1)
 
         sidebar = tk.Frame(self, bg="gray")
         sidebar.place(relx=0, rely=0, relwidth=0.2, relheight=1)
@@ -141,10 +122,9 @@ class App(tk.Tk):
         threading.Thread(target=self.start_ws, daemon=True).start()
 
         self.show("camera")
+        self.poll_host_logs()
 
     def destroy(self):
-        sys.stdout = sys.__stdout__
-        sys.stderr = sys.__stderr__
         super().destroy()
 
     def show(self, name):
@@ -158,6 +138,14 @@ class App(tk.Tk):
         elif status == "disconnected":
             self.status_label.config(text="Rozłączony", bg="red", fg="white")
 
+    def poll_host_logs(self):
+        if self.clients:
+            data = {"type": "get_logs"}
+            msg = json.dumps(data)
+            for ws in self.clients:
+                asyncio.run_coroutine_threadsafe(ws.send(msg), self.loop)
+        self.after(50, self.poll_host_logs)
+
     def start_ws(self):
         asyncio.set_event_loop(self.loop)
         self.loop.run_until_complete(self.ws_server())
@@ -169,12 +157,24 @@ class App(tk.Tk):
 
         try:
             async for msg in websocket:
-                data = json.loads(msg)
-
-                if data.get("type") == "audio_chunk":
-                    self.after(0, self.frames["mic"].update_audio, data)
-                else:
-                    print(f"RX: {data}")
+                try:
+                    data = json.loads(msg)
+                    msg_type = data.get("type")
+                    b64_file = data.get("file")
+                    
+                    if b64_file is not None:
+                        try:
+                            decoded_text = base64.b64decode(b64_file).decode("utf-8")
+                            self.after(0, self.frames["log"]._safe_append_json_log, decoded_text, msg_type)
+                        except Exception as decode_err:
+                            print(f"Base64 decode error: {decode_err}", file=sys.stderr)
+                    else:
+                        if msg_type == "audio_chunk":
+                            self.after(0, self.frames["mic"].update_audio, data)
+                        else:
+                            print(f"RX JSON: {data}")
+                except json.JSONDecodeError:
+                    print(f"RX Raw error: {msg}", file=sys.stderr)
 
         except Exception as e:
             print(f"WS error: {e}", file=sys.stderr)

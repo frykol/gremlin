@@ -1,6 +1,5 @@
 import tkinter as tk
 from tkinter import scrolledtext
-from datetime import datetime
 
 class LogView(tk.Frame):
     def __init__(self, parent, app):
@@ -38,12 +37,17 @@ class LogView(tk.Frame):
         self.text_area.tag_config("ERROR", foreground="#f44336")
         self.text_area.tag_config("SYSTEM", foreground="#2196f3")
 
-    def _safe_append(self, message, level):
-        timestamp = datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
-        full_msg = f"{timestamp} [{level}] {message}\n"
-
+    def _safe_append_json_log(self, text, log_type):
         self.text_area.config(state="normal")
-        self.text_area.insert(tk.END, full_msg, level)
+        
+        level = log_type.upper() if log_type else "INFO"
+        
+        for line in text.splitlines():
+            if not line.strip():
+                continue
+                
+            self.text_area.insert(tk.END, line + "\n", level)
+            
         self.text_area.see(tk.END)
         self.text_area.config(state="disabled")
 
