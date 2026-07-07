@@ -7,6 +7,7 @@ import struct
 import time
 import sys
 import base64
+import os
 
 from Camera_view import CameraView
 from Mic_view import MicView
@@ -15,9 +16,11 @@ from I2C_view import I2CView
 from Control_view import ControlView
 from Log_view import LogView
 
+# Ścieżka do logów
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+LOG_FILE_PATH = os.path.join(BASE_DIR, "host.log")
 
 class UDPCameraProtocol(asyncio.DatagramProtocol):
-
     def __init__(self, app):
         self.app = app
         self.buffers = {}            
@@ -59,17 +62,15 @@ class UDPCameraProtocol(asyncio.DatagramProtocol):
             }
 
         self.buffers[frame_id]["chunks"][chunk_index] = payload
-        frame_info = self.buffers[frame_id]
-
-        if len(frame_info["chunks"]) == frame_info["total"]:
+        
+        if len(self.buffers[frame_id]["chunks"]) == self.buffers[frame_id]["total"]:
             try:
-                full_jpeg_bytes = b"".join(frame_info["chunks"][i] for i in range(frame_info["total"]))
+                full_jpeg_bytes = b"".join(self.buffers[frame_id]["chunks"][i] for i in range(self.buffers[frame_id]["total"]))
                 self.app.after(0, self.app.frames["camera"].update_frame, full_jpeg_bytes)
             except Exception as e:
                 print(f"Error assembling frame {frame_id}: {e}", file=sys.stderr)
             finally:
                 del self.buffers[frame_id]
-
 
 class App(tk.Tk):
     def __init__(self):
@@ -85,13 +86,13 @@ class App(tk.Tk):
         container.pack(fill="both", expand=True)
 
         self.frames = {}
-
+        # Przekazujemy ścieżkę do logów do LogView
         self.frames["camera"] = CameraView(container, self)
         self.frames["mic"] = MicView(container, self)
         self.frames["gpio"] = GpioView(container, self)
         self.frames["i2c"] = I2CView(container, self)
         self.frames["control"] = ControlView(container, self)
-        self.frames["log"] = LogView(container, self)
+        self.frames["log"] = LogView(container, self, LOG_FILE_PATH)
 
         for name, frame in self.frames.items():
             if name == "log":
@@ -109,42 +110,28 @@ class App(tk.Tk):
         tk.Button(sidebar, text="Control", command=lambda: self.show("control")).pack(fill="x")
         tk.Button(sidebar, text="Log", command=lambda: self.show("log")).pack(fill="x")
 
-        self.status_label = tk.Label(
-            sidebar, 
-            text="Łączący się", 
-            bg="yellow", 
-            fg="black", 
-            font=("Arial", 11, "bold"),
-            pady=10
-        )
+        self.status_label = tk.Label(sidebar, text="Łączący się", bg="yellow", fg="black", font=("Arial", 11, "bold"), pady=10)
         self.status_label.pack(side="bottom", fill="x", pady=10, padx=10)
 
         threading.Thread(target=self.start_ws, daemon=True).start()
-
         self.show("camera")
         self.poll_host_logs()
-
-    def destroy(self):
-        super().destroy()
 
     def show(self, name):
         self.frames[name].tkraise()
 
     def update_status(self, status):
-        if status == "connecting":
-            self.status_label.config(text="Łączący się", bg="yellow", fg="black")
-        elif status == "connected":
-            self.status_label.config(text="Połączony", bg="green", fg="white")
-        elif status == "disconnected":
-            self.status_label.config(text="Rozłączony", bg="red", fg="white")
+        if status == "connecting": self.status_label.config(text="Łączący się", bg="yellow", fg="black")
+        elif status == "connected": self.status_label.config(text="Połączony", bg="green", fg="white")
+        elif status == "disconnected": self.status_label.config(text="Rozłączony", bg="red", fg="white")
 
     def poll_host_logs(self):
         if self.clients:
-            data = {"send": "logs"}
+            data = {"type": "get_logs"}
             msg = json.dumps(data)
             for ws in self.clients:
                 asyncio.run_coroutine_threadsafe(ws.send(msg), self.loop)
-        self.after(500, self.poll_host_logs)
+        self.after(500, self.poll_host_logs) # Zwiększono interwał dla stabilności
 
     def start_ws(self):
         asyncio.set_event_loop(self.loop)
@@ -153,36 +140,32 @@ class App(tk.Tk):
     async def handler(self, websocket):
         self.clients.add(websocket)
         self.after(0, self.update_status, "connected")
-        print(f"Client connected: {websocket.remote_address}")
 
         try:
             async for msg in websocket:
                 try:
                     data = json.loads(msg)
                     msg_type = data.get("type")
+                    b64_file = data.get("file")
                     
-                    if msg_type == "log" or msg_type == "host_log":
-                        b64_file = data.get("file")
-                        
-                        if b64_file is not None:
-                            try:
-                                decoded_text = base64.b64decode(b64_file).decode("utf-8")
-                                self.after(0, self.frames["log"]._safe_append_raw, decoded_text)
-                            except Exception as decode_err:
-                                print(f"Base64 decode error: {decode_err}", file=sys.stderr)
+                    if b64_file is not None:
+                        # POPRAWKA: Używamy trybu "a" (append) zamiast "w"
+                        try:
+                            decoded_text = base64.b64decode(b64_file).decode("utf-8")
+                            with open(LOG_FILE_PATH, "a", encoding="utf-8") as f:
+                                f.write(decoded_text + "\n")
+                            self.after(0, self.frames["log"].update_from_file)
+                        except Exception as decode_err:
+                            print(f"File write error: {decode_err}", file=sys.stderr)
                     elif msg_type == "audio_chunk":
                         self.after(0, self.frames["mic"].update_audio, data)
-                    else:
-                        print(f"RX JSON: {data}")
                 except json.JSONDecodeError:
-                    print(f"RX Raw error: {msg}", file=sys.stderr)
-
-        except Exception as e:
-            print(f"WS error: {e}", file=sys.stderr)
-
+                    if isinstance(msg, str) and msg.strip():
+                        with open(LOG_FILE_PATH, "a", encoding="utf-8") as f:
+                            f.write(msg + "\n")
+                        self.after(0, self.frames["log"].update_from_file)
         finally:
             self.clients.remove(websocket)
-            print("Client disconnected")
             if not self.clients:
                 self.after(0, self.update_status, "disconnected")
 
@@ -191,25 +174,13 @@ class App(tk.Tk):
             with open("config.json", "r") as f:
                 config = json.load(f)
             udp_port = config.get("camera_stream", {}).get("udp_port", 8766)
-        except Exception:
+        except:
             udp_port = 8766
 
-        udp_endpoint = self.loop.create_datagram_endpoint(
-            lambda: UDPCameraProtocol(self),
-            local_addr=("0.0.0.0", udp_port)
-        )
-        transport, protocol = await udp_endpoint
-        print(f"UDP Stream listener connected on port {udp_port}")
-
-        try:
-            async with websockets.serve(self.handler, "0.0.0.0", 8765):
-                print("WebSocket server running on 8765")
-                self.after(0, self.update_status, "disconnected")
-                await asyncio.Future()
-        except Exception as e:
-            print(f"Server error: {e}", file=sys.stderr)
-            self.after(0, self.update_status, "disconnected")
-
+        udp_endpoint = self.loop.create_datagram_endpoint(lambda: UDPCameraProtocol(self), local_addr=("0.0.0.0", udp_port))
+        await udp_endpoint
+        async with websockets.serve(self.handler, "0.0.0.0", 8765):
+            await asyncio.Future()
 
 if __name__ == "__main__":
     App().mainloop()
