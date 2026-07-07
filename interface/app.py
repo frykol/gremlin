@@ -5,12 +5,34 @@ import websockets
 import json
 import struct
 import time
+import sys
 
 from Camera_view import CameraView
 from Mic_view import MicView
 from GPIO_view import GpioView
 from I2C_view import I2CView
 from Control_view import ControlView
+from Log_view import LogView
+
+
+class StdStreamRedirector:
+    def __init__(self, app, log_level, original_stream):
+        self.app = app
+        self.log_level = log_level
+        self.original_stream = original_stream
+        self.buffer = ""
+
+    def write(self, message):
+        self.original_stream.write(message)
+        
+        self.buffer += message
+        while "\n" in self.buffer:
+            line, self.buffer = self.buffer.split("\n", 1)
+            if line.strip() and "log" in self.app.frames:
+                self.app.after(0, self.app.frames["log"]._safe_append, line, self.log_level)
+
+    def flush(self):
+        self.original_stream.flush()
 
 
 class UDPCameraProtocol(asyncio.DatagramProtocol):
@@ -31,7 +53,7 @@ class UDPCameraProtocol(asyncio.DatagramProtocol):
         try:
             frame_id, chunk_index, total_chunks, timestamp = struct.unpack("!IHHd", header)
         except Exception as e:
-            print(f"UDP Header parse error: {e}")
+            print(f"UDP Header parse error: {e}", file=sys.stderr)
             return
 
         current_time = time.time()
@@ -61,10 +83,9 @@ class UDPCameraProtocol(asyncio.DatagramProtocol):
         if len(frame_info["chunks"]) == frame_info["total"]:
             try:
                 full_jpeg_bytes = b"".join(frame_info["chunks"][i] for i in range(frame_info["total"]))
-                
                 self.app.after(0, self.app.frames["camera"].update_frame, full_jpeg_bytes)
             except Exception as e:
-                print(f"Error assembling frame {frame_id}: {e}")
+                print(f"Error assembling frame {frame_id}: {e}", file=sys.stderr)
             finally:
                 del self.buffers[frame_id]
 
@@ -89,9 +110,13 @@ class App(tk.Tk):
         self.frames["gpio"] = GpioView(container, self)
         self.frames["i2c"] = I2CView(container, self)
         self.frames["control"] = ControlView(container, self)
+        self.frames["log"] = LogView(container, self)
+
+        sys.stdout = StdStreamRedirector(self, "INFO", sys.stdout)
+        sys.stderr = StdStreamRedirector(self, "ERROR", sys.stderr)
 
         for frame in self.frames.values():
-            frame.place(relwidth=1, relheight=1)
+            frame.place(relx=0.2, rely=0, relwidth=0.8, relheight=1)
 
         sidebar = tk.Frame(self, bg="gray")
         sidebar.place(relx=0, rely=0, relwidth=0.2, relheight=1)
@@ -101,6 +126,7 @@ class App(tk.Tk):
         tk.Button(sidebar, text="GPIO", command=lambda: self.show("gpio")).pack(fill="x")
         tk.Button(sidebar, text="I2C PWM", command=lambda: self.show("i2c")).pack(fill="x")
         tk.Button(sidebar, text="Control", command=lambda: self.show("control")).pack(fill="x")
+        tk.Button(sidebar, text="Log", command=lambda: self.show("log")).pack(fill="x")
 
         self.status_label = tk.Label(
             sidebar, 
@@ -115,6 +141,11 @@ class App(tk.Tk):
         threading.Thread(target=self.start_ws, daemon=True).start()
 
         self.show("camera")
+
+    def destroy(self):
+        sys.stdout = sys.__stdout__
+        sys.stderr = sys.__stderr__
+        super().destroy()
 
     def show(self, name):
         self.frames[name].tkraise()
@@ -134,7 +165,7 @@ class App(tk.Tk):
     async def handler(self, websocket):
         self.clients.add(websocket)
         self.after(0, self.update_status, "connected")
-        print("Client connected:", websocket.remote_address)
+        print(f"Client connected: {websocket.remote_address}")
 
         try:
             async for msg in websocket:
@@ -143,10 +174,10 @@ class App(tk.Tk):
                 if data.get("type") == "audio_chunk":
                     self.after(0, self.frames["mic"].update_audio, data)
                 else:
-                    print("RX:", data)
+                    print(f"RX: {data}")
 
         except Exception as e:
-            print("WS error:", e)
+            print(f"WS error: {e}", file=sys.stderr)
 
         finally:
             self.clients.remove(websocket)
@@ -175,7 +206,7 @@ class App(tk.Tk):
                 self.after(0, self.update_status, "disconnected")
                 await asyncio.Future()
         except Exception as e:
-            print(f"Server error: {e}")
+            print(f"Server error: {e}", file=sys.stderr)
             self.after(0, self.update_status, "disconnected")
 
 
