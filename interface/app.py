@@ -16,7 +16,6 @@ from I2C_view import I2CView
 from Control_view import ControlView
 from Log_view import LogView
 
-# Ścieżka do logów
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_FILE_PATH = os.path.join(BASE_DIR, "host.log")
 
@@ -86,7 +85,6 @@ class App(tk.Tk):
         container.pack(fill="both", expand=True)
 
         self.frames = {}
-        # Przekazujemy ścieżkę do logów do LogView
         self.frames["camera"] = CameraView(container, self)
         self.frames["mic"] = MicView(container, self)
         self.frames["gpio"] = GpioView(container, self)
@@ -131,7 +129,7 @@ class App(tk.Tk):
             msg = json.dumps(data)
             for ws in self.clients:
                 asyncio.run_coroutine_threadsafe(ws.send(msg), self.loop)
-        self.after(500, self.poll_host_logs) # Zwiększono interwał dla stabilności
+        self.after(500, self.poll_host_logs)
 
     def start_ws(self):
         asyncio.set_event_loop(self.loop)
@@ -149,10 +147,9 @@ class App(tk.Tk):
                     b64_file = data.get("file")
                     
                     if b64_file is not None:
-                        # POPRAWKA: Używamy trybu "a" (append) zamiast "w"
                         try:
                             decoded_text = base64.b64decode(b64_file).decode("utf-8")
-                            with open(LOG_FILE_PATH, "a", encoding="utf-8") as f:
+                            with open(LOG_FILE_PATH, "w", encoding="utf-8") as f:
                                 f.write(decoded_text + "\n")
                             self.after(0, self.frames["log"].update_from_file)
                         except Exception as decode_err:
@@ -161,7 +158,7 @@ class App(tk.Tk):
                         self.after(0, self.frames["mic"].update_audio, data)
                 except json.JSONDecodeError:
                     if isinstance(msg, str) and msg.strip():
-                        with open(LOG_FILE_PATH, "a", encoding="utf-8") as f:
+                        with open(LOG_FILE_PATH, "w", encoding="utf-8") as f:
                             f.write(msg + "\n")
                         self.after(0, self.frames["log"].update_from_file)
         finally:

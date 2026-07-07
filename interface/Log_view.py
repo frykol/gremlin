@@ -1,6 +1,5 @@
 import tkinter as tk
 from tkinter import scrolledtext
-import sys
 import os
 
 class LogView(tk.Frame):
@@ -30,7 +29,6 @@ class LogView(tk.Frame):
         self.text_area.tag_config("SYSTEM", foreground="#2196f3")
 
     def update_from_file(self):
-        """Wczytuje zawartość pliku logu i aktualizuje GUI."""
         if not os.path.exists(self.log_path):
             return
 
@@ -59,11 +57,9 @@ class LogView(tk.Frame):
                 tag = None
             self.text_area.insert(tk.END, line + "\n", tag)
             
-        self.text_area.see(tk.END)
         self.text_area.config(state="disabled")
 
     def clear_logs(self):
-        """Czyści plik na dysku i widok GUI."""
         try:
             with open(self.log_path, "w", encoding="utf-8") as f:
                 f.write("")
