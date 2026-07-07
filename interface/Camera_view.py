@@ -13,7 +13,7 @@ class CameraView(tk.Frame):
 
         self.app = app
         self.last_frame = None  
-        self.rotated = False  # Zmienna stanu obrotu
+        self.rotated = False  
 
         self.screen = tk.Frame(self, bg="lightblue", borderwidth=3, relief="ridge")
         self.screen.place(relx=0.3, rely=0.05, relheight=0.7, relwidth=0.6)
@@ -41,7 +41,6 @@ class CameraView(tk.Frame):
         self.capture_button.place(relx=0.9, rely=0.15, relheight=0.05, relwidth=0.1)
 
     def toggle_rotate(self):
-        """Zmienia stan obrotu i wysyła komendę do robota."""
         self.rotated = not self.rotated
         
         data = {"type": "rotate", "value": self.rotated}
@@ -69,12 +68,10 @@ class CameraView(tk.Frame):
         self.send_stream(False)
 
     def update_frame(self, jpeg_bytes):
-        """Odbiera surowe bajty JPEG z gniazda UDP."""
+
         try:
-            # Otwieramy strumień bajtów bezpośrednio w PIL, bez powolnego base64
             image = Image.open(io.BytesIO(jpeg_bytes))
 
-            # Jeśli tryb obrotu jest aktywny, obracamy klatkę lokalnie
             if self.rotated:
                 image = image.rotate(180)
 
@@ -89,7 +86,7 @@ class CameraView(tk.Frame):
             photo = ImageTk.PhotoImage(image)
 
             self.image_label.config(image=photo)
-            self.image_label.image = photo  # ⚠️ konieczne
+            self.image_label.image = photo  
 
         except Exception as e:
             print("Frame error:", e)

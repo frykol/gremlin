@@ -63,7 +63,7 @@ class I2CView(tk.Frame):
         data = {
             "type": "motor",
             "channel": self.active_index,
-            "pwm": int(self.slider.get() * 40.95)  # mapowanie
+            "pwm": int(self.slider.get() * 40.95)  
         }
 
         for ws in self.app.clients:

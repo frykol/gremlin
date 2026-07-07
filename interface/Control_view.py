@@ -7,7 +7,6 @@ class ControlView(tk.Frame):
         super().__init__(parent)
         self.app = app  
 
-        # Mapowanie kierunków na konkretne kanały
         self.directions = {
             "Przód": [0, 2, 5, 7],
             "Tył":   [1, 3, 4, 6],
@@ -21,14 +20,12 @@ class ControlView(tk.Frame):
         self._release_timers = {}
         self.last_sent_values = {i: -1 for i in range(8)}
         
-        # Etykieta statusu w oknie aplikacji
         self.status_label = tk.Label(
             self, text="NIEAKTYWNY", bg="red", fg="white", 
             font=("Arial", 14, "bold"), relief="ridge", bd=4
         )
         self.status_label.place(relx=0.3, rely=0.02, relwidth=0.6, relheight=0.12)
 
-        # Suwak regulacji mocy
         self.power_slider = tk.Scale(
             self, from_=0, to=100, orient="horizontal", 
             label="Moc silników (%)", command=self.on_slider_change
@@ -36,7 +33,6 @@ class ControlView(tk.Frame):
         self.power_slider.set(100) 
         self.power_slider.place(relx=0.3, rely=0.16, relwidth=0.6, relheight=0.15)
 
-        # Nowe współrzędne - tryby FULL umieszczone bezpośrednio pod zwykłymi strzałkami
         self.buttons = {}
         coords = {
             "Przód":      (0.5, 0.35),
@@ -54,7 +50,6 @@ class ControlView(tk.Frame):
             btn.bind("<ButtonRelease-1>", lambda e, d=name: self.on_release(d))
             self.buttons[name] = btn
 
-        # Bindy klawiatury systemowej
         top = self.winfo_toplevel()
         keys = {
             "<KeyPress-Up>": "Przód", "<KeyRelease-Up>": "Przód", 
