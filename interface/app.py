@@ -127,7 +127,7 @@ class App(tk.Tk):
 
     def poll_host_logs(self):
         if self.clients:
-            data = {"type": "get_logs"}
+            data = {"send": "logs"}
             msg = json.dumps(data)
             for ws in self.clients:
                 asyncio.run_coroutine_threadsafe(ws.send(msg), self.loop)
