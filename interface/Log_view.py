@@ -37,14 +37,20 @@ class LogView(tk.Frame):
         self.text_area.tag_config("ERROR", foreground="#f44336")
         self.text_area.tag_config("SYSTEM", foreground="#2196f3")
 
-    def _safe_append_json_log(self, text, log_type):
+    def _safe_append_raw(self, text):
         self.text_area.config(state="normal")
-        
-        level = log_type.upper() if log_type else "INFO"
         
         for line in text.splitlines():
             if not line.strip():
                 continue
+                
+            upper_line = line.upper()
+            if "ERROR" in upper_line or "CRITICAL" in upper_line:
+                level = "ERROR"
+            elif "SYSTEM" in upper_line:
+                level = "SYSTEM"
+            else:
+                level = "INFO"
                 
             self.text_area.insert(tk.END, line + "\n", level)
             

@@ -140,11 +140,11 @@ class App(tk.Tk):
 
     def poll_host_logs(self):
         if self.clients:
-            data = {"type": "get_logs"}
+            data = {"send": "fglogs"}
             msg = json.dumps(data)
             for ws in self.clients:
                 asyncio.run_coroutine_threadsafe(ws.send(msg), self.loop)
-        self.after(50, self.poll_host_logs)
+        self.after(500, self.poll_host_logs)
 
     def start_ws(self):
         asyncio.set_event_loop(self.loop)
@@ -160,19 +160,20 @@ class App(tk.Tk):
                 try:
                     data = json.loads(msg)
                     msg_type = data.get("type")
-                    b64_file = data.get("file")
                     
-                    if b64_file is not None:
-                        try:
-                            decoded_text = base64.b64decode(b64_file).decode("utf-8")
-                            self.after(0, self.frames["log"]._safe_append_json_log, decoded_text, msg_type)
-                        except Exception as decode_err:
-                            print(f"Base64 decode error: {decode_err}", file=sys.stderr)
+                    if msg_type == "log" or msg_type == "host_log":
+                        b64_file = data.get("file")
+                        
+                        if b64_file is not None:
+                            try:
+                                decoded_text = base64.b64decode(b64_file).decode("utf-8")
+                                self.after(0, self.frames["log"]._safe_append_raw, decoded_text)
+                            except Exception as decode_err:
+                                print(f"Base64 decode error: {decode_err}", file=sys.stderr)
+                    elif msg_type == "audio_chunk":
+                        self.after(0, self.frames["mic"].update_audio, data)
                     else:
-                        if msg_type == "audio_chunk":
-                            self.after(0, self.frames["mic"].update_audio, data)
-                        else:
-                            print(f"RX JSON: {data}")
+                        print(f"RX JSON: {data}")
                 except json.JSONDecodeError:
                     print(f"RX Raw error: {msg}", file=sys.stderr)
 
