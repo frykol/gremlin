@@ -1,24 +1,22 @@
 import asyncio
 
-from src.hardware.respeaker.interface import MicArrayInterface
+from src.hardware.oak_d.interface import CameraInterface
 from src.robot_state import RobotState
 
-class MicWorker:
-    def __init__(self, mic_array: MicArrayInterface, state: RobotState):
-        self.mic_array: MicArrayInterface = mic_array
+class CameraWorker:
+    def __init__(self, camera: CameraInterface, state: RobotState):
+        self.camera: CameraInterface = camera
         self.state: RobotState = state
 
         self.running: bool = False
         self.task: asyncio.Task | None = None
 
     async def run(self):
-        loop = asyncio.get_running_loop()
-
         while self.running:
-            chunk = await loop.run_in_executor(None, self.mic_array.get_audio_chunk)
+            frame = self.camera.get_camera_frame()
 
-            if chunk is not None:
-                self.state.last_audio_chunk = chunk
+            if frame is not None:
+                self.state.last_frame = frame
 
             await asyncio.sleep(0.001)
 
@@ -26,7 +24,7 @@ class MicWorker:
         if self.running:
             return
 
-        self.mic_array.start()
+        self.camera.start()
 
         self.running = True
         self.task = asyncio.create_task(self.run())
@@ -37,4 +35,4 @@ class MicWorker:
         if self.task is not None:
             await self.task
 
-        self.mic_array.stop()
+        self.camera.stop()

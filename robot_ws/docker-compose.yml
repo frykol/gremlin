@@ -11,6 +11,8 @@ services:
       - ROS_DOMAIN_ID=0
     volumes:
       - ./ros2_ws:/ros2_ws
+      - ./.ros_logs:/root/.ros/log
+      - ${HOME}/.Xauthority:/root/.Xauthority:ro
       - /dev:/dev
     devices:
       - /dev/gpiochip0

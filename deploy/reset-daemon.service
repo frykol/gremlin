@@ -1,0 +1,13 @@
+[Unit]
+Description=Gremlin reset-button daemon (przywraca custom_basic_structure na kartę SD)
+After=multi-user.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/gremlin/gremlin
+ExecStart=/home/gremlin/gremlin/.venv/bin/python3 -m src.reset_daemon
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

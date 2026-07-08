@@ -1,6 +1,6 @@
 {
   "dev" : true,
-  "is_custom": false,
+  "is_custom": true,
   "gpio": {
     "chip": "/dev/gpiochip0",
     "pins":{
@@ -25,8 +25,8 @@
   "oak_d": {
     "width": 800,
     "height": 600,
-    "fps": 60,
-    "is_dummy": false
+    "fps": 30,
+    "is_dummy": true
   },
   "camera_stream": {
     "udp_host": "192.168.1.162",
@@ -48,6 +48,6 @@
     "chunk_size": 512,
     "device_name": "ReSpeaker 4 Mic Array",
     "stream_channel": 0,
-    "is_dummy": false
+    "is_dummy": true
   }
 }

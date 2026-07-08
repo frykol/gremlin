@@ -1,0 +1,1342 @@
+Czytnik kart SD (HW-125, dummy) działa
+Uruchamiam DOMYŚLNY program (default.py)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/gremlin/gremlin/src/main.py", line 58, in <module>
+    main()
+    ~~~~^^
+  File "/home/gremlin/gremlin/src/main.py", line 54, in main
+    asyncio.run(_run(module.init, module.loop, config))
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/home/gremlin/gremlin/src/main.py", line 32, in _run
+    await init_fn(config)
+  File "/home/gremlin/gremlin/src/default.py", line 37, in init
+    gpio_c.setup()
+    ~~~~~~~~~~~~^^
+  File "/home/gremlin/gremlin/src/hardware/gpio/gpio_controller.py", line 26, in setup
+    self.request = gpiod.request_lines(
+                   ~~~~~~~~~~~~~~~~~~~^
+            self.chip,
+            ^^^^^^^^^^
+            consumer="ib2-en",
+            ^^^^^^^^^^^^^^^^^^
+            config=config,
+            ^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/gremlin/gremlin/.venv/lib/python3.13/site-packages/gpiod/__init__.py", line 118, in request_lines
+    return chip.request_lines(
+           ~~~~~~~~~~~~~~~~~~^
+        config=config,
+        ^^^^^^^^^^^^^^
+    ...<2 lines>...
+        output_values=output_values,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/gremlin/gremlin/.venv/lib/python3.13/site-packages/gpiod/chip.py", line 322, in request_lines
+    req_internal = cast("_ext.Chip", self._chip).request_lines(
+        line_cfg, consumer, event_buffer_size
+    )
+OSError: [Errno 16] Device or resource busy
+Czytnik kart SD (HW-125, dummy) działa
+Uruchamiam DOMYŚLNY program (default.py)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Czytnik kart SD (HW-125, dummy) działa
+OAK-D kamera działa
+ReSpeaker mic array działa
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+Connected
+Czytnik kart SD (HW-125, dummy) działa
+Uruchamiam DOMYŚLNY program (default.py)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Czytnik kart SD (HW-125, dummy) działa
+OAK-D kamera działa
+ReSpeaker mic array działa
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+Connected
+WS disconnected: no close frame received or sent
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+OAK-D kamera zatrzymana
+ReSpeaker mic array zatrzymana
+Czytnik kart SD (HW-125, dummy) zatrzymany
+Connecting...
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/home/gremlin/gremlin/src/main.py", line 33, in _run
+    await loop_fn(config)
+  File "/home/gremlin/gremlin/src/default.py", line 58, in loop
+    await _robot.run()
+  File "/home/gremlin/gremlin/src/robot_controller.py", line 89, in run
+    await asyncio.gather(*tasks)
+  File "/home/gremlin/gremlin/src/services/camera_streamer.py", line 48, in run
+    await asyncio.sleep(0.001)
+  File "/usr/lib/python3.13/asyncio/tasks.py", line 718, in sleep
+    return await future
+           ^^^^^^^^^^^^
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/gremlin/gremlin/src/main.py", line 58, in <module>
+    main()
+    ~~~~^^
+  File "/home/gremlin/gremlin/src/main.py", line 54, in main
+    asyncio.run(_run(module.init, module.loop, config))
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 123, in run
+    raise KeyboardInterrupt()
+KeyboardInterrupt
+Czytnik kart SD (HW-125, dummy) działa
+Uruchamiam DOMYŚLNY program (default.py)
+Connecting...
+Connected
+Czytnik kart SD (HW-125, dummy) działa
+OAK-D kamera działa
+ReSpeaker mic array działa
+OAK-D kamera zatrzymana
+ReSpeaker mic array zatrzymana
+Czytnik kart SD (HW-125, dummy) zatrzymany
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/home/gremlin/gremlin/src/main.py", line 33, in _run
+    await loop_fn(config)
+  File "/home/gremlin/gremlin/src/default.py", line 58, in loop
+    await _robot.run()
+  File "/home/gremlin/gremlin/src/robot_controller.py", line 89, in run
+    await asyncio.gather(*tasks)
+  File "/home/gremlin/gremlin/src/services/camera_streamer.py", line 48, in run
+    await asyncio.sleep(0.001)
+  File "/usr/lib/python3.13/asyncio/tasks.py", line 718, in sleep
+    return await future
+           ^^^^^^^^^^^^
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/gremlin/gremlin/src/main.py", line 58, in <module>
+    main()
+    ~~~~^^
+  File "/home/gremlin/gremlin/src/main.py", line 54, in main
+    asyncio.run(_run(module.init, module.loop, config))
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 123, in run
+    raise KeyboardInterrupt()
+KeyboardInterrupt
+Czytnik kart SD (HW-125, dummy) działa
+Uruchamiam DOMYŚLNY program (default.py)
+Connecting...
+Connected
+Czytnik kart SD (HW-125, dummy) działa
+OAK-D kamera działa
+ReSpeaker mic array działa
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+{'type': 'get_logs'}
+OAK-D kamera zatrzymana
+ReSpeaker mic array zatrzymana
+Czytnik kart SD (HW-125, dummy) zatrzymany
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/home/gremlin/gremlin/src/main.py", line 33, in _run
+    await loop_fn(config)
+  File "/home/gremlin/gremlin/src/default.py", line 58, in loop
+    await _robot.run()
+  File "/home/gremlin/gremlin/src/robot_controller.py", line 89, in run
+    await asyncio.gather(*tasks)
+  File "/home/gremlin/gremlin/src/services/camera_streamer.py", line 48, in run
+    await asyncio.sleep(0.001)
+  File "/usr/lib/python3.13/asyncio/tasks.py", line 718, in sleep
+    return await future
+           ^^^^^^^^^^^^
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/gremlin/gremlin/src/main.py", line 58, in <module>
+    main()
+    ~~~~^^
+  File "/home/gremlin/gremlin/src/main.py", line 54, in main
+    asyncio.run(_run(module.init, module.loop, config))
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 123, in run
+    raise KeyboardInterrupt()
+KeyboardInterrupt
+Czytnik kart SD (HW-125, dummy) działa
+Uruchamiam DOMYŚLNY program (default.py)
+Connecting...
+Connected
+Czytnik kart SD (HW-125, dummy) działa
+OAK-D kamera działa
+ReSpeaker mic array działa
+{'send': 'fglogs'}
+{'send': 'fglogs'}
+{'send': 'fglogs'}
+{'send': 'fglogs'}
+{'send': 'fglogs'}
+{'send': 'fglogs'}
+{'send': 'fglogs'}
+{'send': 'fglogs'}
+{'send': 'fglogs'}
+{'send': 'fglogs'}
+{'send': 'fglogs'}
+{'send': 'fglogs'}
+{'send': 'fglogs'}
+{'send': 'fglogs'}
+{'send': 'fglogs'}
+{'send': 'fglogs'}
+{'send': 'fglogs'}
+{'send': 'fglogs'}
+{'send': 'fglogs'}
+{'send': 'fglogs'}
+{'send': 'fglogs'}
+{'send': 'fglogs'}
+{'send': 'fglogs'}
+{'send': 'fglogs'}
+{'send': 'fglogs'}
+{'send': 'fglogs'}
+{'send': 'fglogs'}
+{'send': 'fglogs'}
+{'send': 'fglogs'}
+{'send': 'fglogs'}
+{'send': 'fglogs'}
+OAK-D kamera zatrzymana
+ReSpeaker mic array zatrzymana
+Czytnik kart SD (HW-125, dummy) zatrzymany
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/home/gremlin/gremlin/src/main.py", line 33, in _run
+    await loop_fn(config)
+  File "/home/gremlin/gremlin/src/default.py", line 58, in loop
+    await _robot.run()
+  File "/home/gremlin/gremlin/src/robot_controller.py", line 89, in run
+    await asyncio.gather(*tasks)
+  File "/home/gremlin/gremlin/src/services/camera_streamer.py", line 48, in run
+    await asyncio.sleep(0.001)
+  File "/usr/lib/python3.13/asyncio/tasks.py", line 718, in sleep
+    return await future
+           ^^^^^^^^^^^^
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/gremlin/gremlin/src/main.py", line 58, in <module>
+    main()
+    ~~~~^^
+  File "/home/gremlin/gremlin/src/main.py", line 54, in main
+    asyncio.run(_run(module.init, module.loop, config))
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 123, in run
+    raise KeyboardInterrupt()
+KeyboardInterrupt
+Czytnik kart SD (HW-125, dummy) działa
+Uruchamiam DOMYŚLNY program (default.py)
+Connecting...
+Connected
+Czytnik kart SD (HW-125, dummy) działa
+OAK-D kamera działa
+ReSpeaker mic array działa
+WS disconnected: no close frame received or sent
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+OAK-D kamera zatrzymana
+ReSpeaker mic array zatrzymana
+Czytnik kart SD (HW-125, dummy) zatrzymany
+Connecting...
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/home/gremlin/gremlin/src/main.py", line 33, in _run
+    await loop_fn(config)
+  File "/home/gremlin/gremlin/src/default.py", line 58, in loop
+    await _robot.run()
+  File "/home/gremlin/gremlin/src/robot_controller.py", line 89, in run
+    await asyncio.gather(*tasks)
+  File "/home/gremlin/gremlin/src/services/camera_streamer.py", line 48, in run
+    await asyncio.sleep(0.001)
+  File "/usr/lib/python3.13/asyncio/tasks.py", line 718, in sleep
+    return await future
+           ^^^^^^^^^^^^
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/gremlin/gremlin/src/main.py", line 58, in <module>
+    main()
+    ~~~~^^
+  File "/home/gremlin/gremlin/src/main.py", line 54, in main
+    asyncio.run(_run(module.init, module.loop, config))
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 123, in run
+    raise KeyboardInterrupt()
+KeyboardInterrupt
+Czytnik kart SD (HW-125, dummy) działa
+Uruchamiam DOMYŚLNY program (default.py)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Czytnik kart SD (HW-125, dummy) działa
+OAK-D kamera działa
+ReSpeaker mic array działa
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Traceback (most recent call last):
+  File "/home/gremlin/gremlin/src/robot_controller.py", line 89, in run
+    await asyncio.gather(*tasks)
+  File "/home/gremlin/gremlin/src/services/command_processor.py", line 23, in run
+    await asyncio.sleep(0.005)
+  File "/usr/lib/python3.13/asyncio/tasks.py", line 718, in sleep
+    return await future
+           ^^^^^^^^^^^^
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/gremlin/gremlin/src/main.py", line 58, in <module>
+    main()
+    ~~~~^^
+  File "/home/gremlin/gremlin/src/main.py", line 54, in main
+    asyncio.run(_run(module.init, module.loop, config))
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 712, in run_until_complete
+    self.run_forever()
+    ~~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 683, in run_forever
+    self._run_once()
+    ~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 2042, in _run_once
+    handle._run()
+    ~~~~~~~~~~~^^
+  File "/usr/lib/python3.13/asyncio/events.py", line 89, in _run
+    self._context.run(self._callback, *self._args)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gremlin/gremlin/src/main.py", line 33, in _run
+    await loop_fn(config)
+  File "/home/gremlin/gremlin/src/default.py", line 58, in loop
+    await _robot.run()
+  File "/home/gremlin/gremlin/src/robot_controller.py", line 98, in run
+    await self.camera_worker.stop()
+  File "/home/gremlin/gremlin/src/workers/camera_worker.py", line 38, in stop
+    self.camera.stop()
+    ~~~~~~~~~~~~~~~~^^
+  File "/home/gremlin/gremlin/src/hardware/oak_d/oak_d.py", line 54, in stop
+    self.device.close()
+    ~~~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 157, in _on_sigint
+    raise KeyboardInterrupt()
+KeyboardInterrupt
+Czytnik kart SD (HW-125, dummy) działa
+Uruchamiam DOMYŚLNY program (default.py)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Czytnik kart SD (HW-125, dummy) działa
+OAK-D kamera działa
+ReSpeaker mic array działa
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+Connected
+WS disconnected: no close frame received or sent
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+OAK-D kamera zatrzymana
+ReSpeaker mic array zatrzymana
+Czytnik kart SD (HW-125, dummy) zatrzymany
+Connecting...
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/home/gremlin/gremlin/src/main.py", line 33, in _run
+    await loop_fn(config)
+  File "/home/gremlin/gremlin/src/default.py", line 58, in loop
+    await _robot.run()
+  File "/home/gremlin/gremlin/src/robot_controller.py", line 89, in run
+    await asyncio.gather(*tasks)
+  File "/home/gremlin/gremlin/src/services/camera_streamer.py", line 48, in run
+    await asyncio.sleep(0.001)
+  File "/usr/lib/python3.13/asyncio/tasks.py", line 718, in sleep
+    return await future
+           ^^^^^^^^^^^^
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/gremlin/gremlin/src/main.py", line 58, in <module>
+    main()
+    ~~~~^^
+  File "/home/gremlin/gremlin/src/main.py", line 54, in main
+    asyncio.run(_run(module.init, module.loop, config))
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 123, in run
+    raise KeyboardInterrupt()
+KeyboardInterrupt
+Czytnik kart SD (HW-125, dummy) działa
+Uruchamiam DOMYŚLNY program (default.py)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/gremlin/gremlin/src/main.py", line 58, in <module>
+    main()
+    ~~~~^^
+  File "/home/gremlin/gremlin/src/main.py", line 54, in main
+    asyncio.run(_run(module.init, module.loop, config))
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/home/gremlin/gremlin/src/main.py", line 32, in _run
+    await init_fn(config)
+  File "/home/gremlin/gremlin/src/default.py", line 37, in init
+    gpio_c.setup()
+    ~~~~~~~~~~~~^^
+  File "/home/gremlin/gremlin/src/hardware/gpio/gpio_controller.py", line 26, in setup
+    self.request = gpiod.request_lines(
+                   ~~~~~~~~~~~~~~~~~~~^
+            self.chip,
+            ^^^^^^^^^^
+            consumer="ib2-en",
+            ^^^^^^^^^^^^^^^^^^
+            config=config,
+            ^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/gremlin/gremlin/.venv/lib/python3.13/site-packages/gpiod/__init__.py", line 118, in request_lines
+    return chip.request_lines(
+           ~~~~~~~~~~~~~~~~~~^
+        config=config,
+        ^^^^^^^^^^^^^^
+    ...<2 lines>...
+        output_values=output_values,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/gremlin/gremlin/.venv/lib/python3.13/site-packages/gpiod/chip.py", line 322, in request_lines
+    req_internal = cast("_ext.Chip", self._chip).request_lines(
+        line_cfg, consumer, event_buffer_size
+    )
+OSError: [Errno 16] Device or resource busy
+Czytnik kart SD (HW-125, dummy) działa
+Uruchamiam DOMYŚLNY program (default.py)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/gremlin/gremlin/src/main.py", line 58, in <module>
+    main()
+    ~~~~^^
+  File "/home/gremlin/gremlin/src/main.py", line 54, in main
+    asyncio.run(_run(module.init, module.loop, config))
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/home/gremlin/gremlin/src/main.py", line 32, in _run
+    await init_fn(config)
+  File "/home/gremlin/gremlin/src/default.py", line 37, in init
+    gpio_c.setup()
+    ~~~~~~~~~~~~^^
+  File "/home/gremlin/gremlin/src/hardware/gpio/gpio_controller.py", line 26, in setup
+    self.request = gpiod.request_lines(
+                   ~~~~~~~~~~~~~~~~~~~^
+            self.chip,
+            ^^^^^^^^^^
+            consumer="ib2-en",
+            ^^^^^^^^^^^^^^^^^^
+            config=config,
+            ^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/gremlin/gremlin/.venv/lib/python3.13/site-packages/gpiod/__init__.py", line 118, in request_lines
+    return chip.request_lines(
+           ~~~~~~~~~~~~~~~~~~^
+        config=config,
+        ^^^^^^^^^^^^^^
+    ...<2 lines>...
+        output_values=output_values,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/gremlin/gremlin/.venv/lib/python3.13/site-packages/gpiod/chip.py", line 322, in request_lines
+    req_internal = cast("_ext.Chip", self._chip).request_lines(
+        line_cfg, consumer, event_buffer_size
+    )
+OSError: [Errno 16] Device or resource busy
+Czytnik kart SD (HW-125, dummy) działa
+Uruchamiam DOMYŚLNY program (default.py)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Czytnik kart SD (HW-125, dummy) działa
+OAK-D kamera działa
+ReSpeaker mic array działa
+Connecting...
+Connected
+WS disconnected: no close frame received or sent
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+Connected
+WS disconnected: no close frame received or sent
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+Connected
+WS disconnected: no close frame received or sent
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+Connected
+WS disconnected: no close frame received or sent
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+OAK-D kamera zatrzymana
+ReSpeaker mic array zatrzymana
+Czytnik kart SD (HW-125, dummy) zatrzymany
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/home/gremlin/gremlin/src/main.py", line 33, in _run
+    await loop_fn(config)
+  File "/home/gremlin/gremlin/src/default.py", line 58, in loop
+    await _robot.run()
+  File "/home/gremlin/gremlin/src/robot_controller.py", line 89, in run
+    await asyncio.gather(*tasks)
+  File "/home/gremlin/gremlin/src/services/camera_streamer.py", line 48, in run
+    await asyncio.sleep(0.001)
+  File "/usr/lib/python3.13/asyncio/tasks.py", line 718, in sleep
+    return await future
+           ^^^^^^^^^^^^
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/gremlin/gremlin/src/main.py", line 58, in <module>
+    main()
+    ~~~~^^
+  File "/home/gremlin/gremlin/src/main.py", line 54, in main
+    asyncio.run(_run(module.init, module.loop, config))
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 123, in run
+    raise KeyboardInterrupt()
+KeyboardInterrupt
+Czytnik kart SD (HW-125, dummy) działa
+Uruchamiam DOMYŚLNY program (default.py)
+Connecting...
+Connected
+Czytnik kart SD (HW-125, dummy) działa
+OAK-D kamera działa
+ReSpeaker mic array działa
+OAK-D kamera zatrzymana
+ReSpeaker mic array zatrzymana
+Czytnik kart SD (HW-125, dummy) zatrzymany
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/home/gremlin/gremlin/src/main.py", line 33, in _run
+    await loop_fn(config)
+  File "/home/gremlin/gremlin/src/default.py", line 58, in loop
+    await _robot.run()
+  File "/home/gremlin/gremlin/src/robot_controller.py", line 89, in run
+    await asyncio.gather(*tasks)
+  File "/home/gremlin/gremlin/src/services/camera_streamer.py", line 48, in run
+    await asyncio.sleep(0.001)
+  File "/usr/lib/python3.13/asyncio/tasks.py", line 718, in sleep
+    return await future
+           ^^^^^^^^^^^^
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/gremlin/gremlin/src/main.py", line 58, in <module>
+    main()
+    ~~~~^^
+  File "/home/gremlin/gremlin/src/main.py", line 54, in main
+    asyncio.run(_run(module.init, module.loop, config))
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 123, in run
+    raise KeyboardInterrupt()
+KeyboardInterrupt
+Czytnik kart SD (HW-125, dummy) działa
+Uruchamiam DOMYŚLNY program (default.py)
+Connecting...
+Connected
+Czytnik kart SD (HW-125, dummy) działa
+OAK-D kamera działa
+ReSpeaker mic array działa
+WS disconnected: no close frame received or sent
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+Connected
+WS disconnected: no close frame received or sent
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+OAK-D kamera zatrzymana
+ReSpeaker mic array zatrzymana
+Czytnik kart SD (HW-125, dummy) zatrzymany
+Connecting...
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/home/gremlin/gremlin/src/main.py", line 33, in _run
+    await loop_fn(config)
+  File "/home/gremlin/gremlin/src/default.py", line 58, in loop
+    await _robot.run()
+  File "/home/gremlin/gremlin/src/robot_controller.py", line 89, in run
+    await asyncio.gather(*tasks)
+  File "/home/gremlin/gremlin/src/services/camera_streamer.py", line 48, in run
+    await asyncio.sleep(0.001)
+  File "/usr/lib/python3.13/asyncio/tasks.py", line 718, in sleep
+    return await future
+           ^^^^^^^^^^^^
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/gremlin/gremlin/src/main.py", line 58, in <module>
+    main()
+    ~~~~^^
+  File "/home/gremlin/gremlin/src/main.py", line 54, in main
+    asyncio.run(_run(module.init, module.loop, config))
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 123, in run
+    raise KeyboardInterrupt()
+KeyboardInterrupt
+Czytnik kart SD (HW-125, dummy) działa
+Uruchamiam DOMYŚLNY program (default.py)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Czytnik kart SD (HW-125, dummy) działa
+OAK-D kamera działa
+ReSpeaker mic array działa
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+Connected
+WS disconnected: no close frame received or sent
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+OAK-D kamera zatrzymana
+Connecting...
+ReSpeaker mic array zatrzymana
+Czytnik kart SD (HW-125, dummy) zatrzymany
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/home/gremlin/gremlin/src/main.py", line 33, in _run
+    await loop_fn(config)
+  File "/home/gremlin/gremlin/src/default.py", line 58, in loop
+    await _robot.run()
+  File "/home/gremlin/gremlin/src/robot_controller.py", line 89, in run
+    await asyncio.gather(*tasks)
+  File "/home/gremlin/gremlin/src/services/command_processor.py", line 23, in run
+    await asyncio.sleep(0.005)
+  File "/usr/lib/python3.13/asyncio/tasks.py", line 718, in sleep
+    return await future
+           ^^^^^^^^^^^^
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/gremlin/gremlin/src/main.py", line 58, in <module>
+    main()
+    ~~~~^^
+  File "/home/gremlin/gremlin/src/main.py", line 54, in main
+    asyncio.run(_run(module.init, module.loop, config))
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 123, in run
+    raise KeyboardInterrupt()
+KeyboardInterrupt
+Czytnik kart SD (HW-125, dummy) działa
+Uruchamiam DOMYŚLNY program (default.py)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Czytnik kart SD (HW-125, dummy) działa
+OAK-D kamera działa
+ReSpeaker mic array działa
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+Connected
+WS disconnected: no close frame received or sent
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Traceback (most recent call last):
+  File "/home/gremlin/gremlin/src/robot_controller.py", line 89, in run
+    await asyncio.gather(*tasks)
+  File "/home/gremlin/gremlin/src/services/camera_streamer.py", line 48, in run
+    await asyncio.sleep(0.001)
+  File "/usr/lib/python3.13/asyncio/tasks.py", line 718, in sleep
+    return await future
+           ^^^^^^^^^^^^
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/gremlin/gremlin/src/main.py", line 58, in <module>
+    main()
+    ~~~~^^
+  File "/home/gremlin/gremlin/src/main.py", line 54, in main
+    asyncio.run(_run(module.init, module.loop, config))
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 712, in run_until_complete
+    self.run_forever()
+    ~~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 683, in run_forever
+    self._run_once()
+    ~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 2042, in _run_once
+    handle._run()
+    ~~~~~~~~~~~^^
+  File "/usr/lib/python3.13/asyncio/events.py", line 89, in _run
+    self._context.run(self._callback, *self._args)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gremlin/gremlin/src/main.py", line 33, in _run
+    await loop_fn(config)
+  File "/home/gremlin/gremlin/src/default.py", line 58, in loop
+    await _robot.run()
+  File "/home/gremlin/gremlin/src/robot_controller.py", line 98, in run
+    await self.camera_worker.stop()
+  File "/home/gremlin/gremlin/src/workers/camera_worker.py", line 38, in stop
+    self.camera.stop()
+    ~~~~~~~~~~~~~~~~^^
+  File "/home/gremlin/gremlin/src/hardware/oak_d/oak_d.py", line 57, in stop
+    self.device.close()
+    ~~~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 157, in _on_sigint
+    raise KeyboardInterrupt()
+KeyboardInterrupt
+Czytnik kart SD (HW-125, dummy) działa
+Uruchamiam DOMYŚLNY program (default.py)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Czytnik kart SD (HW-125, dummy) działa
+OAK-D kamera działa
+ReSpeaker mic array działa
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+Connected
+WS disconnected: no close frame received or sent
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+OAK-D kamera zatrzymana
+Connecting...
+ReSpeaker mic array zatrzymana
+Czytnik kart SD (HW-125, dummy) zatrzymany
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/home/gremlin/gremlin/src/main.py", line 33, in _run
+    await loop_fn(config)
+  File "/home/gremlin/gremlin/src/default.py", line 58, in loop
+    await _robot.run()
+  File "/home/gremlin/gremlin/src/robot_controller.py", line 89, in run
+    await asyncio.gather(*tasks)
+  File "/home/gremlin/gremlin/src/services/camera_streamer.py", line 48, in run
+    await asyncio.sleep(0.001)
+  File "/usr/lib/python3.13/asyncio/tasks.py", line 718, in sleep
+    return await future
+           ^^^^^^^^^^^^
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/gremlin/gremlin/src/main.py", line 58, in <module>
+    main()
+    ~~~~^^
+  File "/home/gremlin/gremlin/src/main.py", line 54, in main
+    asyncio.run(_run(module.init, module.loop, config))
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 123, in run
+    raise KeyboardInterrupt()
+KeyboardInterrupt
+Czytnik kart SD (HW-125, dummy) działa
+Uruchamiam DOMYŚLNY program (default.py)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Czytnik kart SD (HW-125, dummy) działa
+OAK-D kamera działa
+ReSpeaker mic array działa
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+Connected
+WS disconnected: no close frame received or sent
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+Connecting...
+WS disconnected: [Errno 111] Connect call failed ('192.168.1.162', 8765)
+OAK-D kamera zatrzymana
+Connecting...
+ReSpeaker mic array zatrzymana
+Czytnik kart SD (HW-125, dummy) zatrzymany
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/home/gremlin/gremlin/src/main.py", line 33, in _run
+    await loop_fn(config)
+  File "/home/gremlin/gremlin/src/default.py", line 58, in loop
+    await _robot.run()
+  File "/home/gremlin/gremlin/src/robot_controller.py", line 89, in run
+    await asyncio.gather(*tasks)
+  File "/home/gremlin/gremlin/src/services/command_processor.py", line 23, in run
+    await asyncio.sleep(0.005)
+  File "/usr/lib/python3.13/asyncio/tasks.py", line 718, in sleep
+    return await future
+           ^^^^^^^^^^^^
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/gremlin/gremlin/src/main.py", line 58, in <module>
+    main()
+    ~~~~^^
+  File "/home/gremlin/gremlin/src/main.py", line 54, in main
+    asyncio.run(_run(module.init, module.loop, config))
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 123, in run
+    raise KeyboardInterrupt()
+KeyboardInterrupt

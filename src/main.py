@@ -1,61 +1,58 @@
-import json
-import time
+import os
+import sys
 import asyncio
-import cv2
+
 from .config import load_config
-from .hardware.oak_d.dummy_oak_d import FakeOakDCamera
-from .hardware.oak_d.oak_d import OakDCamera
-from .hardware.i2c.i2c_pwm import i2cPWM
-from .hardware.gpio.gpio_controller import GPIOController
-from .hardware.respeaker.factory import create_mic_array
-from .dev_connection.client_factory import create_client
-from .dev_connection.client import WSClientInterface
-from .robot_controller import RobotController
+from .hardware.sd_card.factory import create_sd_card
+from . import default
 
-async def robot_run():
-    config = load_config("config.json")
-    is_dev = config["dev"]
-
-    r_tab = asyncio.Queue()
-
-    ws: WSClientInterface = create_client(
-        is_dev,
-        "ws://192.168.1.162:8765",
-        r_tab
-    )
-
-    asyncio.create_task(ws.connect())
-    await asyncio.sleep(1)
-
-    oak_d_config = config["oak_d"]
-    oak_d_camera = OakDCamera(
-        oak_d_config["width"],
-        oak_d_config["height"]
-    )
-
-    mic_array = create_mic_array(False, config)
-
-    gpio_c = GPIOController()
-    gpio_c.setup()
+LOG_PATH = "sim.log"
 
 
-    i2c_p = i2cPWM()
-    i2c_p.start()
+class _Tee:
+    def __init__(self, *streams):
+        self.streams = streams
 
-    robot = RobotController(
-        config=config,
-        command_queue=r_tab,
-        gpio=gpio_c,
-        i2c_pwm=i2c_p,
-        camera=oak_d_camera,
-        mic_array=mic_array,
-        ws=ws
-    )
+    def write(self, data):
+        for stream in self.streams:
+            stream.write(data)
 
-    await robot.run()
+    def flush(self):
+        for stream in self.streams:
+            stream.flush()
+
+
+def _capture_stdout_stderr_to_log() -> None:
+    log_file = open(LOG_PATH, "a", buffering=1)
+    sys.stdout = _Tee(sys.stdout, log_file)
+    sys.stderr = _Tee(sys.stderr, log_file)
+
+
+async def _run(init_fn, loop_fn, config: dict) -> None:
+    await init_fn(config)
+    await loop_fn(config)
+
 
 def main():
-    asyncio.run(robot_run())
+    _capture_stdout_stderr_to_log()
+
+    config = load_config("config.json")
+
+    sd_card = create_sd_card(config)
+    sd_card.start()
+
+    custom_path = os.path.join(sd_card.mount_point, "custom.py")
+
+    if config.get("is_custom", True) and os.path.exists(custom_path):
+        sys.path.insert(0, sd_card.mount_point)
+        import custom as module
+        print(f"Uruchamiam CUSTOM program: {custom_path}")
+    else:
+        module = default
+        print("Uruchamiam DOMYŚLNY program (default.py)")
+
+    asyncio.run(_run(module.init, module.loop, config))
+
 
 if __name__ == "__main__":
     main()

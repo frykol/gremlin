@@ -28,6 +28,8 @@ from geometry_msgs.msg import Twist
 import sounddevice as sd
 from vosk import Model, KaldiRecognizer
 
+import ollama
+
 # ─────────────────────────────────────────────
 # KONFIGURACJA KOMEND
 # ─────────────────────────────────────────────
@@ -114,11 +116,53 @@ VOICE_CHANNEL_INDEX = 0
 def match_command(text: str):
     """Dopasuj rozpoznany tekst do komendy. Zwraca nazwę akcji lub None."""
     text = text.lower().strip()
-    for action, phrases in COMMANDS.items():
-        for phrase in phrases:
-            if phrase in text:
-                return action
-    return None
+    # for action, phrases in COMMANDS.items():
+    #     for phrase in phrases:
+    #         if phrase in text:
+    #             return action
+    # return None
+    prompt = """
+    You are a robot command parser.
+
+    Available intents:
+    forward
+    backward
+    full_left
+    full_right
+    left
+    right
+    spin
+    speed_up
+    slow_down
+    stop
+    unknown
+
+    Just give one word, that is the intention from the list. 
+    Note that commands can be in Polish but answer in english.
+    If that the case first translate sentence to english and then choose intention.
+    Left means a turn to the left while full_left means driving to the left.
+
+    Example:
+    Command: "Jedź w lewo"
+    Answer: left
+
+    Command:
+    "
+    """
+    prompt += text
+    prompt += '"'
+    try:
+        # Send a prompt to the local Ollama model
+        response = ollama.chat(
+            model="qwen2.5:1.5b-instruct",
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
+        # Extract and return the model's reply
+        return response['message']['content']
+    except Exception as e:
+        return f"Error: {e}"
 
 
 def find_respeaker_device():

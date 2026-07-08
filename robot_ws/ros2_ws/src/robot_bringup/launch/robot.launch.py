@@ -22,6 +22,29 @@ def generate_launch_description():
         'voice_device', default_value='auto',
         description='Audio input device index for voice_node, or "auto" to detect ReSpeaker by name'
     )
+    lidar_port_arg = DeclareLaunchArgument(
+        'lidar_port', default_value='/dev/ttyUSB0',
+        description='Serial port for the Unitree L2 LiDAR'
+    )
+
+    # Wymaga sklonowania https://github.com/unitreerobotics/unilidar_sdk.git
+    # (cala paczka, nie sam podfolder — CMakeLists.txt odwoluje sie do
+    # ../../../unitree_lidar_sdk wzglednie) do ros2_ws/src/unilidar_sdk/.
+    # cloud_frame nadpisany na "laser_link" zeby pasowal do naszej static TF
+    # (domyslnie sterownik uzywa "unilidar_lidar").
+    unitree_lidar = Node(
+        package='unitree_lidar_ros2',
+        executable='unitree_lidar_ros2_node',
+        name='unitree_lidar_ros2',
+        output='screen',
+        parameters=[{
+            'port': LaunchConfiguration('lidar_port'),
+            'cloud_frame': 'laser_link',
+            'cloud_topic': 'unilidar/cloud',
+            'imu_frame': 'unilidar_imu',
+            'imu_topic': 'unilidar/imu',
+        }],
+    )
 
     voice_node = Node(
         package='voice_node',
@@ -54,9 +77,6 @@ def generate_launch_description():
         remappings=[('/cmd_vel_out', '/cmd_vel')],
     )
 
-    # TODO: confirm the LIDAR point cloud topic once the Unitree L2 driver
-    # is running (e.g. `ros2 topic list` -> /unilidar/cloud) and update
-    # the remap below.
     pointcloud_to_laserscan = Node(
         package='pointcloud_to_laserscan',
         executable='pointcloud_to_laserscan_node',
@@ -106,10 +126,12 @@ def generate_launch_description():
     return LaunchDescription([
         nav_arg,
         voice_device_arg,
+        lidar_port_arg,
         voice_node,
         gesture_node,
         motor_driver,
         twist_mux,
+        unitree_lidar,
         pointcloud_to_laserscan,
         slam_toolbox,
         laser_static_tf,

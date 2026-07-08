@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y \
     ros-humble-twist-mux \
     ros-humble-pointcloud-to-laserscan \
     ros-humble-tf-transformations \
+    ros-humble-rviz2 \
     alsa-utils \
     && rm -rf /var/lib/apt/lists/*
 

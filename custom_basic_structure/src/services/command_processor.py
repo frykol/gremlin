@@ -26,10 +26,8 @@ class CommandProcessor:
         try:
             while True:
                 cmd = self.command_queue.get_nowait()
-                # if cmd:
-                #     print(cmd)
 
-                if cmd.get("send") == "logs":
+                if cmd.get("send") == "log":
                     await self._send_log()
 
                 elif cmd.get("type") == "gpio":
@@ -60,6 +58,6 @@ class CommandProcessor:
             encoded = ""
 
         await self.ws.send(json.dumps({
-            "type": "logs",
+            "type": "log",
             "file": encoded,
         }))
