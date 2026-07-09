@@ -6,6 +6,8 @@ from geometry_msgs.msg import Twist, TransformStamped
 from nav_msgs.msg import Odometry
 from tf2_ros import TransformBroadcaster
 
+from motor_driver.odometry import integrate_odometry, quaternion_from_yaw
+
 CONTROL_RATE_HZ = 50.0
 WATCHDOG_TIMEOUT_S = 0.3
 
@@ -82,11 +84,18 @@ class MotorDriver(Node):
             self.get_logger().warn(f'GPIO enable BTS7960 niedostępne: {e}')
             self._gpio_request = None
 
-        # Odometry stub — no encoder feedback yet, pose stays at origin.
-        # TODO: integrate wheel encoder ticks into vx/vy/wz -> x/y/theta.
+        # Open-loop (dead-reckoning) odometry: no wheel encoders exist on
+        # this chassis, so position is integrated from the commanded
+        # /cmd_vel rather than measured wheel motion. Drifts under wheel
+        # slip, but is far better than the previous always-zero stub for
+        # slam_toolbox's motion prior between scans.
         self._x = 0.0
         self._y = 0.0
         self._theta = 0.0
+        self._vx = 0.0
+        self._vy = 0.0
+        self._wz = 0.0
+        self._last_tick_time = time.monotonic()
 
         self._timer = self.create_timer(1.0 / CONTROL_RATE_HZ, self._tick)
 
@@ -105,6 +114,16 @@ class MotorDriver(Node):
 
         fl, fr, rl, rr = mecanum_inverse_kinematics(cmd.linear.x, cmd.linear.y, cmd.angular.z)
         self._drive_wheels(fl, fr, rl, rr)
+
+        now = time.monotonic()
+        dt = now - self._last_tick_time
+        self._last_tick_time = now
+
+        self._vx, self._vy, self._wz = cmd.linear.x, cmd.linear.y, cmd.angular.z
+        self._x, self._y, self._theta = integrate_odometry(
+            self._x, self._y, self._theta, self._vx, self._vy, self._wz, dt
+        )
+
         self._publish_odom()
 
     def _drive_wheels(self, fl, fr, rl, rr):
@@ -136,8 +155,29 @@ class MotorDriver(Node):
                 kierunek = 'przod' if w >= 0 else 'tyl'
                 self.get_logger().info(f'{name}: {kierunek} kanal={active_ch} rad/s={w:.2f} duty={duty}')
 
+    # Open-loop odometry covariance: no wheel feedback, so these reflect
+    # dead-reckoning-from-commanded-velocity uncertainty, not a measured
+    # sensor. Order of magnitude only — tune once real drift is observed.
+    _POSE_COVARIANCE = [
+        0.05, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.05, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 1e6, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 1e6, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 1e6, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.2,
+    ]
+    _TWIST_COVARIANCE = [
+        0.1, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.1, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 1e6, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 1e6, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 1e6, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.2,
+    ]
+
     def _publish_odom(self):
         now = self.get_clock().now()
+        qz, qw = quaternion_from_yaw(self._theta)
 
         odom = Odometry()
         odom.header.stamp = now.to_msg()
@@ -145,8 +185,13 @@ class MotorDriver(Node):
         odom.child_frame_id = 'base_link'
         odom.pose.pose.position.x = self._x
         odom.pose.pose.position.y = self._y
-        odom.pose.pose.orientation.z = 0.0
-        odom.pose.pose.orientation.w = 1.0
+        odom.pose.pose.orientation.z = qz
+        odom.pose.pose.orientation.w = qw
+        odom.pose.covariance = self._POSE_COVARIANCE
+        odom.twist.twist.linear.x = self._vx
+        odom.twist.twist.linear.y = self._vy
+        odom.twist.twist.angular.z = self._wz
+        odom.twist.covariance = self._TWIST_COVARIANCE
         self._odom_pub.publish(odom)
 
         tf = TransformStamped()
@@ -155,8 +200,8 @@ class MotorDriver(Node):
         tf.child_frame_id = 'base_link'
         tf.transform.translation.x = self._x
         tf.transform.translation.y = self._y
-        tf.transform.rotation.z = 0.0
-        tf.transform.rotation.w = 1.0
+        tf.transform.rotation.z = qz
+        tf.transform.rotation.w = qw
         self._tf_broadcaster.sendTransform(tf)
 
 
