@@ -17,7 +17,9 @@ class ControlView(tk.Frame):
         }
 
         self.active_directions = set()
-        self._release_timers = {}
+        self.pressed_keys = set()
+        self.pressed_buttons = set()
+        self.key_release_timers = {}
         self.last_sent_values = {i: -1 for i in range(8)}
         
         self.status_label = tk.Label(
@@ -30,7 +32,7 @@ class ControlView(tk.Frame):
             self, from_=0, to=100, orient="horizontal", 
             label="Moc silników (%)", command=self.on_slider_change
         )
-        self.power_slider.set(100) 
+        self.power_slider.set(20) 
         self.power_slider.place(relx=0.3, rely=0.16, relwidth=0.6, relheight=0.15)
 
         self.buttons = {}
@@ -46,25 +48,30 @@ class ControlView(tk.Frame):
         for name, (rx, ry) in coords.items():
             btn = tk.Button(self, text=name, font=("Arial", 9, "bold") if "Full" in name else ("Arial", 9))
             btn.place(relx=rx, rely=ry, relwidth=0.16, relheight=0.12)
-            btn.bind("<ButtonPress-1>", lambda e, d=name: self.on_press(d))
-            btn.bind("<ButtonRelease-1>", lambda e, d=name: self.on_release(d))
+            btn.bind("<ButtonPress-1>", lambda e, d=name: self.on_btn_press(d))
+            btn.bind("<ButtonRelease-1>", lambda e, d=name: self.on_btn_release(d))
             self.buttons[name] = btn
 
         top = self.winfo_toplevel()
-        keys = {
-            "<KeyPress-Up>": "Przód", "<KeyRelease-Up>": "Przód", 
-            "<KeyPress-Down>": "Tył", "<KeyRelease-Down>": "Tył",
-            "<KeyPress-Left>": "Lewo", "<KeyRelease-Left>": "Lewo",
-            "<KeyPress-Right>": "Prawo", "<KeyRelease-Right>": "Prawo",
-            "<Shift-KeyPress-Left>": "Full lewo", "<Shift-KeyRelease-Left>": "Full lewo",
-            "<Shift-KeyPress-Right>": "Full prawo", "<Shift-KeyRelease-Right>": "Full prawo"
+        
+        key_map = {
+            "<KeyPress-Up>": "Up", "<KeyRelease-Up>": "Up",
+            "<Shift-KeyPress-Up>": "Up", "<Shift-KeyRelease-Up>": "Up",
+            "<KeyPress-Down>": "Down", "<KeyRelease-Down>": "Down",
+            "<Shift-KeyPress-Down>": "Down", "<Shift-KeyRelease-Down>": "Down",
+            "<KeyPress-Left>": "Left", "<KeyRelease-Left>": "Left",
+            "<Shift-KeyPress-Left>": "Left", "<Shift-KeyRelease-Left>": "Left",
+            "<KeyPress-Right>": "Right", "<KeyRelease-Right>": "Right",
+            "<Shift-KeyPress-Right>": "Right", "<Shift-KeyRelease-Right>": "Right",
+            "<KeyPress-Shift_L>": "Shift", "<KeyRelease-Shift_L>": "Shift",
+            "<KeyPress-Shift_R>": "Shift", "<KeyRelease-Shift_R>": "Shift"
         }
         
-        for key, name in keys.items():
-            if "Press" in key:
-                top.bind(key, lambda e, d=name: self.on_press(d))
+        for ev, k in key_map.items():
+            if "Press" in ev:
+                top.bind(ev, lambda e, key_name=k: self.on_key_press(key_name))
             else:
-                top.bind(key, lambda e, d=name: self.on_release(d))
+                top.bind(ev, lambda e, key_name=k: self.on_key_release(key_name))
 
     def get_current_pwm(self):
         return int((self.power_slider.get() / 100.0) * 4095)
@@ -129,48 +136,67 @@ class ControlView(tk.Frame):
         for ch, pwm in channel_values.items():
             self.send_motor_data(ch, pwm)
 
-    def on_press(self, direction):
-        if direction in self._release_timers:
-            self.after_cancel(self._release_timers[direction])
-            del self._release_timers[direction]
+    def on_key_press(self, key):
+        if key in self.key_release_timers:
+            self.after_cancel(self.key_release_timers[key])
+            del self.key_release_timers[key]
             
-        if direction in self.active_directions:
-            return
-        
-        self.active_directions.add(direction)
-        self.status_label.config(text=f"AKTYWNE: {','.join(self.active_directions)}", bg="green")
-        self.update_all_motors()
+        if key not in self.pressed_keys:
+            self.pressed_keys.add(key)
+            self.recalculate_directions()
 
-    def on_release(self, direction):
-        if direction in self._release_timers:
-            self.after_cancel(self._release_timers[direction])
+    def on_key_release(self, key):
+        if key in self.key_release_timers:
+            self.after_cancel(self.key_release_timers[key])
             
-        self._release_timers[direction] = self.after(20, lambda: self._execute_release(direction))
+        self.key_release_timers[key] = self.after(20, lambda: self._execute_key_release(key))
 
-        if direction == "Lewo":
-            if "Full lewo" in self._release_timers:
-                self.after_cancel(self._release_timers["Full lewo"])
-            self._release_timers["Full lewo"] = self.after(20, lambda: self._execute_release("Full lewo"))
-        elif direction == "Prawo":
-            if "Full prawo" in self._release_timers:
-                self.after_cancel(self._release_timers["Full prawo"])
-            self._release_timers["Full prawo"] = self.after(20, lambda: self._execute_release("Full prawo"))
+    def _execute_key_release(self, key):
+        if key in self.key_release_timers:
+            del self.key_release_timers[key]
+            
+        if key in self.pressed_keys:
+            self.pressed_keys.remove(key)
+            self.recalculate_directions()
 
-    def _execute_release(self, direction):
-        if direction in self._release_timers:
-            del self._release_timers[direction]
-            
-        if direction not in self.active_directions:
-            return
-            
-        self.active_directions.remove(direction)
+    def on_btn_press(self, direction):
+        if direction not in self.pressed_buttons:
+            self.pressed_buttons.add(direction)
+            self.recalculate_directions()
+
+    def on_btn_release(self, direction):
+        if direction in self.pressed_buttons:
+            self.pressed_buttons.remove(direction)
+            self.recalculate_directions()
+
+    def recalculate_directions(self):
+        new_directions = set(self.pressed_buttons)
         
-        if not self.active_directions:
-            self.status_label.config(text="NIEAKTYWNY", bg="red")
-        else:
-            self.status_label.config(text=f"AKTYWNE: {','.join(self.active_directions)}", bg="green")
-        
-        self.update_all_motors()
+        if "Up" in self.pressed_keys:
+            new_directions.add("Przód")
+        if "Down" in self.pressed_keys:
+            new_directions.add("Tył")
+            
+        if "Left" in self.pressed_keys:
+            if "Shift" in self.pressed_keys:
+                new_directions.add("Full lewo")
+            else:
+                new_directions.add("Lewo")
+                
+        if "Right" in self.pressed_keys:
+            if "Shift" in self.pressed_keys:
+                new_directions.add("Full prawo")
+            else:
+                new_directions.add("Prawo")
+
+        if new_directions != self.active_directions:
+            self.active_directions = new_directions
+            if not self.active_directions:
+                self.status_label.config(text="NIEAKTYWNY", bg="red")
+            else:
+                self.status_label.config(text=f"AKTYWNE: {','.join(self.active_directions)}", bg="green")
+            
+            self.update_all_motors()
 
     def on_slider_change(self, value):
         self.update_all_motors()

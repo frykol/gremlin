@@ -108,12 +108,38 @@ class App(tk.Tk):
         tk.Button(sidebar, text="Control", command=lambda: self.show("control")).pack(fill="x")
         tk.Button(sidebar, text="Log", command=lambda: self.show("log")).pack(fill="x")
 
+        # --- SEKCJA PROGRAM I INDYKATORÓW ---
+        
+        # Indykatory statusu
         self.status_label = tk.Label(sidebar, text="Łączący się", bg="yellow", fg="black", font=("Arial", 11, "bold"), pady=10)
         self.status_label.pack(side="bottom", fill="x", pady=10, padx=10)
+
+        self.program_status_label = tk.Label(sidebar, text="Nieznany", bg="gray", fg="white", font=("Arial", 11, "bold"), pady=10)
+        self.program_status_label.pack(side="bottom", fill="x", pady=(0, 5), padx=10)
+
+        # Przyciski sterujące
+        control_frame = tk.Frame(sidebar, bg="gray")
+        control_frame.pack(side="bottom", fill="x", pady=(0, 10), padx=10)
+        
+        tk.Label(control_frame, text="Program:", bg="gray", fg="white").pack()
+        btn_frame = tk.Frame(control_frame, bg="gray")
+        btn_frame.pack(fill="x")
+        
+        tk.Button(btn_frame, text="ON", command=lambda: self.send_program_command("on")).pack(side="left", expand=True, fill="x")
+        tk.Button(btn_frame, text="OFF", command=lambda: self.send_program_command("off")).pack(side="left", expand=True, fill="x")
 
         threading.Thread(target=self.start_ws, daemon=True).start()
         self.show("camera")
         self.poll_host_logs()
+        self.poll_program_status()
+
+    def send_program_command(self, status):
+        """Wysyła komendę ON/OFF przez WebSocket"""
+        if self.clients:
+            data = {"type": "set_program_status", "status": status}
+            msg = json.dumps(data)
+            for ws in self.clients:
+                asyncio.run_coroutine_threadsafe(ws.send(msg), self.loop)
 
     def show(self, name):
         self.frames[name].tkraise()
@@ -123,6 +149,14 @@ class App(tk.Tk):
         elif status == "connected": self.status_label.config(text="Połączony", bg="green", fg="white")
         elif status == "disconnected": self.status_label.config(text="Rozłączony", bg="red", fg="white")
 
+    def update_program_status(self, status):
+        if status == "on":
+            self.program_status_label.config(text="Program uruchomiony", bg="green", fg="white")
+        elif status == "off":
+            self.program_status_label.config(text="Program wyłączony", bg="red", fg="white")
+        else:
+            self.program_status_label.config(text="Nieznany", bg="gray", fg="white")
+
     def poll_host_logs(self):
         if self.clients:
             data = {"send": "logs"}
@@ -130,6 +164,17 @@ class App(tk.Tk):
             for ws in self.clients:
                 asyncio.run_coroutine_threadsafe(ws.send(msg), self.loop)
         self.after(500, self.poll_host_logs)
+
+    def poll_program_status(self):
+        if self.clients:
+            data = {"type": "get_program_status"}
+            msg = json.dumps(data)
+            for ws in self.clients:
+                asyncio.run_coroutine_threadsafe(ws.send(msg), self.loop)
+        else:
+            self.after(0, self.update_program_status, "unknown")
+        
+        self.after(500, self.poll_program_status)
 
     def start_ws(self):
         asyncio.set_event_loop(self.loop)
@@ -156,6 +201,9 @@ class App(tk.Tk):
                             print(f"File write error: {decode_err}", file=sys.stderr)
                     elif msg_type == "audio_chunk":
                         self.after(0, self.frames["mic"].update_audio, data)
+                    elif msg_type == "get_program_status":
+                        status = data.get("status")
+                        self.after(0, self.update_program_status, status)
                 except json.JSONDecodeError:
                     if isinstance(msg, str) and msg.strip():
                         with open(LOG_FILE_PATH, "w", encoding="utf-8") as f:
@@ -165,6 +213,7 @@ class App(tk.Tk):
             self.clients.remove(websocket)
             if not self.clients:
                 self.after(0, self.update_status, "disconnected")
+                self.after(0, self.update_program_status, "unknown")
 
     async def ws_server(self):
         try:
