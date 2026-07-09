@@ -3,7 +3,8 @@ import base64
 import asyncio
 import json
 import threading
-
+import wave
+import time
 import numpy as np
 
 try:
@@ -80,6 +81,11 @@ class MicView(tk.Frame):
         self._ring: AudioRingBuffer | None = None
         self._output_stream = None
         self._audio_lock = threading.Lock()
+        
+        # Zmienne do nagrywania
+        self.recording_var = tk.BooleanVar(value=False)
+        self._wave_file = None
+        self._current_filename = None
 
         self.screen = tk.Frame(self, bg="black", borderwidth=3, relief="ridge")
         self.screen.place(relx=0.3, rely=0.05, relheight=0.55, relwidth=0.6)
@@ -103,8 +109,31 @@ class MicView(tk.Frame):
             variable=self.playback_var,
         ).place(relx=0.9, rely=0.15)
 
+        tk.Checkbutton(
+            self,
+            text="Nagrywanie (.wav)",
+            variable=self.recording_var,
+            command=self.toggle_recording
+        ).place(relx=0.9, rely=0.20)
+
         status = "sounddevice OK" if HAS_SOUNDDEVICE else "brak sounddevice — tylko poziom"
         tk.Label(self, text=status).place(relx=0.3, rely=0.68)
+
+    def toggle_recording(self):
+        """Zarządza otwieraniem i zamykaniem pliku wav."""
+        if self.recording_var.get():
+            self._current_filename = f"recording_{int(time.time())}.wav"
+            self._wave_file = wave.open(self._current_filename, 'wb')
+            self._wave_file.setnchannels(1)
+            self._wave_file.setsampwidth(2)
+            self._wave_file.setframerate(self.sample_rate)
+            print(f"Nagrywanie rozpoczęte: {self._current_filename}")
+        else:
+            if self._wave_file:
+                self._wave_file.close()
+                print(f"Nagrywanie zatrzymane. Plik zapisany jako: {self._current_filename}")
+                self._wave_file = None
+                self._current_filename = None
 
     def send_audio_stream(self, enabled: bool):
         data = {
@@ -185,6 +214,11 @@ class MicView(tk.Frame):
 
         try:
             pcm = base64.b64decode(data["samples"])
+            
+            # Zapis do pliku jeśli włączone nagrywanie
+            if self.recording_var.get() and self._wave_file:
+                self._wave_file.writeframes(pcm)
+
             samples = np.frombuffer(pcm, dtype=np.int16)
 
             sample_rate = data.get("sample_rate", self.sample_rate)
