@@ -5,6 +5,7 @@ import json
 import threading
 import wave
 import time
+import os  # Dodano import os
 import numpy as np
 
 try:
@@ -126,7 +127,9 @@ class MicView(tk.Frame):
 
     def _start_recording(self):
         """Inicjalizacja pliku i timera."""
-        self._current_filename = f"recording_{int(time.time())}.wav"
+        os.makedirs("audio_captures", exist_ok=True) # Tworzenie folderu
+        self._current_filename = f"audio_captures/recording_{int(time.time())}.wav"
+        
         self._wave_file = wave.open(self._current_filename, 'wb')
         self._wave_file.setnchannels(1)
         self._wave_file.setsampwidth(2)
