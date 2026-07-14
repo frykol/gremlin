@@ -71,12 +71,6 @@ function initControlTab(context) {
     const pwmVal = currentPwm();
     const values = computeChannelValues(activeDirections, pwmVal);
 
-    const serialized = JSON.stringify(values);
-    if (serialized === lastSent) {
-      return;
-    }
-    lastSent = serialized;
-
     if (activeDirections.size === 0) {
       statusEl.textContent = 'NIEAKTYWNY';
       statusEl.className = 'status status-disconnected';
@@ -84,6 +78,12 @@ function initControlTab(context) {
       statusEl.textContent = `AKTYWNE: ${Array.from(activeDirections).join(',')}`;
       statusEl.className = 'status status-connected';
     }
+
+    const serialized = JSON.stringify(values);
+    if (serialized === lastSent) {
+      return;
+    }
+    lastSent = serialized;
 
     for (let channel = 0; channel < 8; channel++) {
       context.sendControl({ type: 'motor', channel, pwm: values[channel] });
