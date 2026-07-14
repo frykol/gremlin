@@ -85,8 +85,12 @@ def generate_launch_description():
         remappings=[('cloud_in', '/unilidar/cloud'), ('scan', '/scan')],
         parameters=[{
             'target_frame': 'laser_link',
-            'min_height': -0.1,
-            'max_height': 0.3,
+            # Widened for testing: only 55/360 scan directions had a valid
+            # return with the original -0.1/0.3 band, suggesting most of
+            # the point cloud falls outside it. TODO: narrow back down
+            # once the lidar's actual mounting pitch/height is measured.
+            'min_height': -0.5,
+            'max_height': 0.5,
             'range_min': 0.1,
             'range_max': 20.0,
         }],
@@ -102,6 +106,15 @@ def generate_launch_description():
 
     # TODO: measure and set the actual mounting offsets (x y z yaw pitch
     # roll) for the LIDAR and OAK-D once the chassis is final.
+    #
+    # Known blind spot: scan diagnostics on 2026-07-09 found a ~100 deg
+    # dead arc (roughly +22 deg to +120 deg from the lidar's zero heading,
+    # front-left through rear-left) with zero valid returns, vs. 13-23 deg
+    # gaps elsewhere. Confirmed physically: something (cable/OAK-D mount/
+    # bracket) sits within ~1m of the lidar in that sector, likely closer
+    # than range_min (0.1m), so those points get filtered as too-close
+    # rather than showing up as a real short-range obstacle. Needs a
+    # mounting fix (reroute/reposition) to recover coverage there.
     laser_static_tf = Node(
         package='tf2_ros',
         executable='static_transform_publisher',

@@ -5,6 +5,7 @@ from src.dev_connection.udp_frame_sender import UdpFrameSender
 from src.hardware.gpio.gpio_controller import GPIOController
 from src.hardware.i2c.i2c_pwm import i2cPWM
 from src.hardware.oak_d.interface import CameraInterface
+from src.hardware.respeaker.factory import create_mic_array
 from src.hardware.respeaker.interface import MicArrayInterface
 from src.hardware.sd_card.interface import SdCardInterface
 
@@ -15,6 +16,7 @@ from .services.audio_streamer import AudioStreamer
 from .logic.robot_logic import RobotLogic
 from .workers.camera_worker import CameraWorker
 from .workers.mic_worker import MicWorker
+from .workers.voice_worker import VoiceWorker
 
 
 class RobotController:
@@ -39,6 +41,13 @@ class RobotController:
         self.mic_worker = MicWorker(
             state=self.state,
             mic_array=mic_array
+        )
+
+        voice_config = config.get("voice", {})
+
+        self.voice_worker = VoiceWorker(
+            mic_array=create_mic_array(config),
+            model_path=voice_config.get("model_path", "/robot/model"),
         )
 
         fps = config.get("oak_d", {}).get("fps") or 15
@@ -77,6 +86,7 @@ class RobotController:
         self.sd_card.start()
         self.camera_worker.start()
         self.mic_worker.start()
+        self.voice_worker.start()
 
         tasks = [
             asyncio.create_task(self.command_processor.run()),
@@ -97,5 +107,6 @@ class RobotController:
 
             await self.camera_worker.stop()
             await self.mic_worker.stop()
+            await self.voice_worker.stop()
             self.udp_frame_sender.close()
             self.sd_card.stop()

@@ -9,6 +9,7 @@ services:
     tty: true
     environment:
       - ROS_DOMAIN_ID=0
+      - DISPLAY=${DISPLAY}
     volumes:
       - ./ros2_ws:/ros2_ws
       - ./.ros_logs:/root/.ros/log

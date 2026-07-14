@@ -21,6 +21,12 @@ slam_toolbox:
     map_start_pose: [0.0, 0.0, 0.0]
 
     resolution: 0.05
+    # Must stay strictly above the lidar's real minimum (range_min: 0.1m
+    # in pointcloud_to_laserscan) with margin — slam_toolbox warns
+    # "minimum laser range setting exceeds the capabilities of the used
+    # Lidar" whenever this value is <= that real minimum, not just when
+    # it's set too high.
+    min_laser_range: 0.15
     max_laser_range: 20.0
     minimum_time_interval: 0.5
     transform_publish_period: 0.02
@@ -30,8 +36,14 @@ slam_toolbox:
 
     use_scan_matching: true
     use_scan_barycenter: true
-    minimum_travel_distance: 0.2
-    minimum_travel_heading: 0.2
+    # Lowered near-zero: our odometry is dead-reckoned from /cmd_vel only
+    # (no wheel encoders), so it never registers hand-moved robot motion.
+    # These gates normally skip scans until odom shows this much travel;
+    # near-zero makes slam_toolbox process on ~minimum_time_interval alone,
+    # so manual/no-encoder testing still accumulates a map. Restore to
+    # 0.2/0.2 once mapping is driven by real /cmd_vel motion.
+    minimum_travel_distance: 0.01
+    minimum_travel_heading: 0.01
     scan_buffer_size: 10
     scan_buffer_maximum_scan_distance: 20.0
     link_match_minimum_response_fine: 0.1

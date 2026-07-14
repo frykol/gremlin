@@ -21,7 +21,7 @@ async def init(config: dict) -> None:
 
     ws: WSClientInterface = create_client(
         is_dev,
-        "ws://192.168.1.162:8765",
+        "ws://192.168.1.249:8777",
         r_tab
     )
 

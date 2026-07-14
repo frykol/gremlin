@@ -2,6 +2,7 @@ import time
 from typing import Optional
 
 import numpy as np
+from scipy import signal
 
 from .interface import MicArrayInterface, AudioChunk
 
@@ -79,10 +80,38 @@ class ReSpeakerMicArray(MicArrayInterface):
 
         self.chunk_id += 1
 
+        if samples.ndim > 1:
+            samples = samples[:, 0]
+
+        samples_out = reduce_noise_audio(samples, self.sample_rate)
+
         return AudioChunk(
-            samples=samples,
+            samples=samples_out,
             timestamp=time.time(),
             sample_rate=self.sample_rate,
-            channels=self.channels,
+            channels=1,
             chunk_id=self.chunk_id,
         )
+
+
+def reduce_noise_audio(y: np.ndarray, sample_rate: int) -> np.ndarray:
+    if y is None:
+        return y
+
+    y = np.asarray(y, dtype=np.float32)
+    y = np.nan_to_num(y, nan=0.0, posinf=0.0, neginf=0.0)
+
+    lidar_low = 150.0
+    lidar_high = 235.0
+    motor_low = 360.0
+    motor_high = 470.0
+
+    lidar_sos = signal.butter(8, [lidar_low, lidar_high], btype="bandstop", fs=sample_rate, output="sos")
+    y = signal.sosfiltfilt(lidar_sos, y)
+
+    motor_sos = signal.butter(8, [motor_low, motor_high], btype="bandstop", fs=sample_rate, output="sos")
+    y = signal.sosfiltfilt(motor_sos, y)
+
+    y = np.nan_to_num(y, nan=0.0, posinf=0.0, neginf=0.0)
+
+    return y

@@ -28,8 +28,6 @@ from geometry_msgs.msg import Twist
 import sounddevice as sd
 from vosk import Model, KaldiRecognizer
 
-import ollama
-
 # ─────────────────────────────────────────────
 # KONFIGURACJA KOMEND
 # ─────────────────────────────────────────────
@@ -37,37 +35,36 @@ import ollama
 COMMANDS = {
     "forward": [
         "do przodu", "naprzód", "jedź", "jedz", "jazda",
-        "jedź do przodu", "ruszaj"
+        "ruszaj"
     ],
     "backward": [
         "do tyłu", "wstecz", "cofnij", "tył", "cofaj",
-        "jedź do tyłu"
     ],
     # full_left/full_right (strafe boczny) — hasla, nie opisowe frazy.
     "full_left": [
-        "ananas"
+        "cała w lewo", "ful lewo"
     ],
     "full_right": [
-        "budyń", "budyn"
+        "cała w prawo", "ful prawo"
     ],
     "left": [
-        "w lewo", "skręć w lewo", "lewo", "skręć lewo"
+        "w lewo", "lewo"
     ],
     "right": [
-        "w prawo", "skręć w prawo", "prawo", "skręć prawo"
+        "w prawo", "prawo"
     ],
     "stop": [
-        "stój", "stop", "zatrzymaj", "zatrzymaj się",
-        "hamuj", "stoi", "koniec"
+        "stój", "stop", "zatrzymaj",
+        "hamuj", "koniec"
     ],
     "spin": [
-        "obrót", "obróć się", "zawróć", "zawracaj", "spin"
+        "obrót", "obróć się", "spin"
     ],
     "speed_up": [
-        "szybciej", "przyspiesz", "więcej gazu"
+        "szybciej", "przyspiesz"
     ],
     "slow_down": [
-        "wolniej", "zwolnij", "zwalniaj"
+        "wolniej", "zwolnij",
     ],
 }
 
@@ -116,53 +113,11 @@ VOICE_CHANNEL_INDEX = 0
 def match_command(text: str):
     """Dopasuj rozpoznany tekst do komendy. Zwraca nazwę akcji lub None."""
     text = text.lower().strip()
-    # for action, phrases in COMMANDS.items():
-    #     for phrase in phrases:
-    #         if phrase in text:
-    #             return action
-    # return None
-    prompt = """
-    You are a robot command parser.
-
-    Available intents:
-    forward
-    backward
-    full_left
-    full_right
-    left
-    right
-    spin
-    speed_up
-    slow_down
-    stop
-    unknown
-
-    Just give one word, that is the intention from the list. 
-    Note that commands can be in Polish but answer in english.
-    If that the case first translate sentence to english and then choose intention.
-    Left means a turn to the left while full_left means driving to the left.
-
-    Example:
-    Command: "Jedź w lewo"
-    Answer: left
-
-    Command:
-    "
-    """
-    prompt += text
-    prompt += '"'
-    try:
-        # Send a prompt to the local Ollama model
-        response = ollama.chat(
-            model="qwen2.5:1.5b-instruct",
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
-        )
-        # Extract and return the model's reply
-        return response['message']['content']
-    except Exception as e:
-        return f"Error: {e}"
+    for action, phrases in COMMANDS.items():
+        for phrase in phrases:
+            if phrase in text:
+                return action
+    return None
 
 
 def find_respeaker_device():
@@ -184,6 +139,19 @@ class VoiceNode(Node):
         super().__init__('voice_node')
         self.publisher_ = self.create_publisher(Twist, '/cmd_vel_voice', 10)
 
+        grammar = json.dumps([
+            "do przodu", "naprzód", "jedź", "jazda", "ruszaj",
+            "do tyłu", "wstecz", "cofnij", "tył", "cofaj",
+            "cała w lewo", "ful lewo",
+            "cała w prawo", "ful prawo",
+            "w lewo", "lewo",
+            "w prawo", "prawo",
+            "stój", "stop", "zatrzymaj", "hamuj", "koniec",
+            "obrót", "obróć się", "spin",
+            "szybciej", "przyspiesz",
+            "wolniej", "zwolnij"
+        ])
+
         self._speed_scale = 1.0
         self._current_twist = Twist()
         self._last_action = None
@@ -192,7 +160,7 @@ class VoiceNode(Node):
 
         self.get_logger().info(f'Ładowanie modelu: {model_path} ...')
         self._model = Model(model_path)
-        self._recognizer = KaldiRecognizer(self._model, 16000)
+        self._recognizer = KaldiRecognizer(self._model, 16000, grammar)
         self._recognizer.SetWords(True)
         self.get_logger().info('Model załadowany.')
 
@@ -222,7 +190,7 @@ class VoiceNode(Node):
     def _listen_loop(self):
         with sd.RawInputStream(
             samplerate=16000,
-            blocksize=8000,
+            blocksize=4000,
             device=self._device,
             dtype='int16',
             channels=MIC_CHANNELS,
@@ -233,9 +201,14 @@ class VoiceNode(Node):
                 data = self._audio_queue.get()
                 if self._recognizer.AcceptWaveform(data):
                     result = json.loads(self._recognizer.Result())
+                    for w in result.get("result", []):
+                        print(w["word"], w["conf"])
                     text = result.get('text', '').strip()
                     if text:
                         self._handle_text(text)
+                else:
+                    partial = json.loads(self._recognizer.PartialResult())
+                    text = partial.get("partial", "").strip()
 
     def _handle_text(self, text: str):
         self.get_logger().info(f'[słyszę] "{text}"')

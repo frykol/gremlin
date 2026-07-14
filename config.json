@@ -48,6 +48,15 @@
     "chunk_size": 512,
     "device_name": "ReSpeaker 4 Mic Array",
     "stream_channel": 0,
-    "is_dummy": false
-  }
+    "is_dummy": true
+  },
+  "voice": {
+    "model_path": "/robot/model"
+  },
+  "ws_server": {
+    "host": "192.168.1.162",
+    "port": 8765
+  },
+  "automatic_disconnect": false,
+  "disconnect_timeout": 2
 }
