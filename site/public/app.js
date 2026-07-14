@@ -2,10 +2,27 @@ const form = document.getElementById('connect-form');
 const ipInput = document.getElementById('robot-ip');
 const statusEl = document.getElementById('status');
 const videoEl = document.getElementById('video');
+const programStatusEl = document.getElementById('program-status');
+const programOnBtn = document.getElementById('program-on');
+const programOffBtn = document.getElementById('program-off');
 
 let controlSocket = null;
 let videoSocket = null;
 let currentVideoUrl = null;
+let programPollTimer = null;
+
+const controlMessageHandlers = [];
+
+function onControlMessage(handler) {
+  controlMessageHandlers.push(handler);
+}
+
+function sendControl(message) {
+  if (!controlSocket || controlSocket.readyState !== WebSocket.OPEN) {
+    return;
+  }
+  controlSocket.send(JSON.stringify(message));
+}
 
 function setStatus(state) {
   const labels = {
@@ -16,6 +33,27 @@ function setStatus(state) {
   statusEl.textContent = labels[state] || labels.disconnected;
   statusEl.className = `status status-${state}`;
 }
+
+function setProgramStatus(status) {
+  const labels = { on: 'Program: ON', off: 'Program: OFF', unknown: 'Program: ?' };
+  const cssState = status === 'on' ? 'connected' : status === 'off' ? 'disconnected' : 'connecting';
+  programStatusEl.textContent = labels[status] || labels.unknown;
+  programStatusEl.className = `status status-${cssState}`;
+}
+
+onControlMessage((data) => {
+  if (data.type === 'get_program_status' || data.type === 'program_status') {
+    setProgramStatus(data.status);
+  }
+});
+
+programOnBtn.addEventListener('click', () => {
+  sendControl({ type: 'set_program_status', status: 'on' });
+});
+
+programOffBtn.addEventListener('click', () => {
+  sendControl({ type: 'set_program_status', status: 'off' });
+});
 
 async function connectVideoRelay() {
   const response = await fetch('/api/config');
@@ -50,23 +88,75 @@ async function connect(robotIp) {
   if (controlSocket) {
     controlSocket.close();
   }
+  if (programPollTimer) {
+    clearInterval(programPollTimer);
+    programPollTimer = null;
+  }
 
   controlSocket = new WebSocket(`ws://${robotIp}:8765`);
 
   controlSocket.onopen = () => {
     setStatus('connected');
-    controlSocket.send(JSON.stringify({
+    sendControl({
       type: 'register_video_sink',
       host: window.location.hostname,
       port: udpPort,
-    }));
+    });
+    programPollTimer = setInterval(() => {
+      sendControl({ type: 'get_program_status' });
+    }, 500);
   };
 
-  controlSocket.onclose = () => setStatus('disconnected');
+  controlSocket.onmessage = (event) => {
+    let data;
+    try {
+      data = JSON.parse(event.data);
+    } catch (e) {
+      return;
+    }
+    for (const handler of controlMessageHandlers) {
+      handler(data);
+    }
+  };
+
+  controlSocket.onclose = () => {
+    setStatus('disconnected');
+    setProgramStatus('unknown');
+    if (programPollTimer) {
+      clearInterval(programPollTimer);
+      programPollTimer = null;
+    }
+  };
   controlSocket.onerror = () => setStatus('disconnected');
 }
 
 form.addEventListener('submit', (event) => {
   event.preventDefault();
   connect(ipInput.value.trim());
+});
+
+const context = { sendControl, onControlMessage };
+
+const tabInitializers = [
+  typeof initControlTab === 'function' ? initControlTab : null,
+  typeof initCameraTab === 'function' ? initCameraTab : null,
+  typeof initGpioTab === 'function' ? initGpioTab : null,
+  typeof initI2cTab === 'function' ? initI2cTab : null,
+  typeof initMicTab === 'function' ? initMicTab : null,
+  typeof initLogTab === 'function' ? initLogTab : null,
+];
+
+for (const init of tabInitializers) {
+  if (init) {
+    init(context);
+  }
+}
+
+document.querySelectorAll('.tab-button').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'));
+    document.querySelectorAll('.tab-button').forEach((b) => b.classList.remove('active'));
+    document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+    btn.classList.add('active');
+  });
 });

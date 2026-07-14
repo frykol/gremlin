@@ -6,18 +6,95 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <h1>Gremlin Control</h1>
+    <header>
+      <h1>Gremlin Control</h1>
 
-    <form id="connect-form">
-      <label for="robot-ip">IP robota</label>
-      <input id="robot-ip" name="robot-ip" type="text" placeholder="192.168.1.162" required />
-      <button type="submit">Połącz</button>
-    </form>
+      <form id="connect-form">
+        <label for="robot-ip">IP robota</label>
+        <input id="robot-ip" name="robot-ip" type="text" placeholder="192.168.1.162" required />
+        <button type="submit">Połącz</button>
+      </form>
 
-    <div id="status" class="status status-disconnected">Rozłączony</div>
+      <div id="status" class="status status-disconnected">Rozłączony</div>
 
-    <img id="video" alt="Podgląd kamery" />
+      <div class="program-controls">
+        <div id="program-status" class="status status-connecting">Program: ?</div>
+        <button id="program-on">Program ON</button>
+        <button id="program-off">Program OFF</button>
+      </div>
+    </header>
 
+    <div class="layout">
+      <nav class="sidebar">
+        <button class="tab-button active" data-tab="control">Control</button>
+        <button class="tab-button" data-tab="camera">Camera</button>
+        <button class="tab-button" data-tab="gpio">GPIO</button>
+        <button class="tab-button" data-tab="i2c">I2C</button>
+        <button class="tab-button" data-tab="mic">Mikrofon</button>
+        <button class="tab-button" data-tab="log">Log</button>
+      </nav>
+
+      <main>
+        <section id="tab-control" class="tab-panel active">
+          <div id="control-status" class="status status-disconnected">NIEAKTYWNY</div>
+          <label for="power-slider">Moc silników (%)</label>
+          <input id="power-slider" type="range" min="0" max="100" value="20" />
+          <div class="control-grid">
+            <button data-direction="Przód">Przód</button>
+            <button data-direction="Lewo">Lewo</button>
+            <button data-direction="Prawo">Prawo</button>
+            <button data-direction="Full lewo">Full lewo</button>
+            <button data-direction="Full prawo">Full prawo</button>
+            <button data-direction="Tył">Tył</button>
+          </div>
+        </section>
+
+        <section id="tab-camera" class="tab-panel">
+          <img id="video" alt="Podgląd kamery" />
+          <div class="camera-controls">
+            <button id="camera-start">Start</button>
+            <button id="camera-stop">Stop</button>
+            <button id="camera-rotate">Obróć</button>
+            <button id="camera-capture">Capture</button>
+          </div>
+        </section>
+
+        <section id="tab-gpio" class="tab-panel">
+          <div class="gpio-controls">
+            <button id="gpio-set-0">0</button>
+            <button id="gpio-set-1">1</button>
+          </div>
+          <div id="gpio-grid" class="gpio-grid"></div>
+        </section>
+
+        <section id="tab-i2c" class="tab-panel">
+          <input id="i2c-slider" type="range" min="0" max="100" value="0" />
+          <div id="i2c-buttons" class="i2c-grid"></div>
+        </section>
+
+        <section id="tab-mic" class="tab-panel">
+          <div class="mic-controls">
+            <button id="mic-start">Start</button>
+            <button id="mic-stop">Stop</button>
+            <label><input id="mic-playback" type="checkbox" checked /> Odsłuch</label>
+          </div>
+          <div id="mic-level" class="mic-level"><div id="mic-level-bar"></div></div>
+          <div id="mic-level-text">0%</div>
+        </section>
+
+        <section id="tab-log" class="tab-panel">
+          <button id="log-clear">Wyczyść Logi</button>
+          <pre id="log-content"></pre>
+        </section>
+      </main>
+    </div>
+
+    <script src="tabs/control.js"></script>
+    <script src="tabs/camera.js"></script>
+    <script src="tabs/gpio.js"></script>
+    <script src="tabs/i2c.js"></script>
+    <script src="tabs/mic.js"></script>
+    <script src="tabs/log.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
