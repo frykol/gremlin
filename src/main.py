@@ -8,7 +8,8 @@ from asyncio import subprocess as asp
 import builtins
 
 from .config import load_config
-from .dev_connection.client import WSClient
+from .dev_connection.ws_server import WsServer
+from .websocket_config import build_bind_address
 
 
 SIM_LOG = "sim.log"
@@ -94,13 +95,10 @@ async def _read_pipe_lines(fd, handler):
 async def main():
     config = load_config("config.json")
 
-    # Build websocket URI from config
-    ws_host = config.get("ws_server", {}).get("host", "192.168.1.162")
-    ws_port = config.get("ws_server", {}).get("port", 8765)
-    ws_uri = f"ws://{ws_host}:{ws_port}"
+    bind_host, bind_port = build_bind_address(config)
 
     instruction_tab = asyncio.Queue()
-    ws = WSClient(ws_uri, instruction_tab)
+    ws = WsServer(bind_host, bind_port, instruction_tab)
     ws_task = asyncio.create_task(ws.connect())
 
     log_file = open(SIM_LOG, "a", buffering=1, encoding="utf-8")
