@@ -25,12 +25,21 @@ class RobotController:
         self.state: RobotState = RobotState()
         self.sd_card: SdCardInterface = sd_card
 
+        camera_stream_config = config.get("camera_stream", {})
+
+        self.udp_frame_sender = UdpFrameSender(
+            host=camera_stream_config.get("udp_host", "192.168.1.162"),
+            port=camera_stream_config.get("udp_port", 8766),
+            chunk_size=camera_stream_config.get("chunk_size", 1400),
+        )
+
         self.command_processor = CommandProcessor(
             command_queue=command_queue,
             gpio=gpio,
             i2c_pwm=i2c_pwm,
             state=self.state,
-            ws=ws
+            ws=ws,
+            udp_frame_sender=self.udp_frame_sender,
         )
 
         self.camera_worker = CameraWorker(
@@ -51,14 +60,6 @@ class RobotController:
         )
 
         fps = config.get("oak_d", {}).get("fps") or 15
-
-        camera_stream_config = config.get("camera_stream", {})
-
-        self.udp_frame_sender = UdpFrameSender(
-            host=camera_stream_config.get("udp_host", "192.168.1.162"),
-            port=camera_stream_config.get("udp_port", 8766),
-            chunk_size=camera_stream_config.get("chunk_size", 1400),
-        )
 
         self.camera_streamer = CameraStreamer(
             udp_sender=self.udp_frame_sender,

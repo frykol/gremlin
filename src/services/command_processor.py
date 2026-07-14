@@ -10,12 +10,13 @@ from ..dev_connection.interface import WSClientInterface
 LOG_PATH = "sim.log"
 
 class CommandProcessor:
-    def __init__(self, command_queue: asyncio.Queue, gpio: GPIOController, i2c_pwm: i2cPWM, state: RobotState, ws: WSClientInterface):
+    def __init__(self, command_queue: asyncio.Queue, gpio: GPIOController, i2c_pwm: i2cPWM, state: RobotState, ws: WSClientInterface, udp_frame_sender):
         self.command_queue: asyncio.Queue = command_queue
         self.gpio: GPIOController = gpio
         self.i2c_pwm: i2cPWM = i2c_pwm
         self.state: RobotState = state
         self.ws: WSClientInterface = ws
+        self.udp_frame_sender = udp_frame_sender
 
     async def run(self):
         while True:
@@ -48,6 +49,9 @@ class CommandProcessor:
 
                 elif cmd.get("type") == "audio_stream":
                     self.state.audio_stream_enabled = cmd["enabled"]
+
+                elif cmd.get("type") == "register_video_sink":
+                    self.udp_frame_sender.set_target(cmd["host"], cmd["port"])
 
         except asyncio.QueueEmpty:
             pass
