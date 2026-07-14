@@ -24,9 +24,13 @@ class WsServer:
 
         self._connection = websocket
 
-        async for message in websocket:
-            json_message = json.loads(message)
-            await self.instruction_tab.put(json_message)
+        try:
+            async for message in websocket:
+                json_message = json.loads(message)
+                await self.instruction_tab.put(json_message)
+        finally:
+            if self._connection is websocket:
+                self._connection = None
 
     async def send(self, message):
         if self._connection is None:

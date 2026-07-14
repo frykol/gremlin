@@ -93,11 +93,42 @@ def test_send_delivers_to_active_connection():
         instruction_tab = asyncio.Queue()
         server = WsServer("0.0.0.0", 8765, instruction_tab)
 
-        conn = FakeConnection([])
-        await server._handler(conn)
+        block = asyncio.Event()
+
+        class BlockingConnection(FakeConnection):
+            def __aiter__(self):
+                return self
+
+            async def __anext__(self):
+                await block.wait()
+                raise StopAsyncIteration
+
+        conn = BlockingConnection([])
+        handler_task = asyncio.create_task(server._handler(conn))
+        await asyncio.sleep(0)  # let handler_task register as the active connection
 
         await server.send("hello")
 
         assert conn.sent == ["hello"]
+
+        block.set()
+        await handler_task
+
+    asyncio.run(run_test())
+
+
+def test_send_no_ops_after_connection_disconnects_naturally():
+    async def run_test():
+        instruction_tab = asyncio.Queue()
+        server = WsServer("0.0.0.0", 8765, instruction_tab)
+
+        conn = FakeConnection([])  # empty messages -> StopAsyncIteration immediately
+        await server._handler(conn)
+
+        # handler ran to completion (natural disconnect, no replacement);
+        # the active connection should have been cleared
+        await server.send("hello")  # must not raise
+
+        assert conn.sent == []
 
     asyncio.run(run_test())
