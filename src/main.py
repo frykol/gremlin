@@ -21,6 +21,20 @@ def _is_broken_pipe_error(exc: Exception) -> bool:
     )
 
 
+def _clear_log_file(log_file, path: str):
+    try:
+        log_file.close()
+    except Exception:
+        pass
+
+    try:
+        open(path, "w", encoding="utf-8").close()
+    except Exception as e:
+        print(f"Failed to clear log file: {e}")
+
+    return open(path, "a", buffering=1, encoding="utf-8")
+
+
 async def _write_instruction_to_child(pm_state, msg, stop_program_manager):
     proc = pm_state.get("proc")
     cmd_writer = pm_state.get("cmd_writer")
@@ -296,6 +310,15 @@ async def main():
                     await send_ws_status("off", False, "Program manager is not running")
             else:
                 await send_ws_status(status, False, "Unknown status value")
+            return
+
+        if msg.get("type") == "clear_logs":
+            nonlocal log_file
+            log_file = _clear_log_file(log_file, SIM_LOG)
+            try:
+                await ws.send(json.dumps({"type": "clear_logs", "success": True}))
+            except Exception as e:
+                print(f"Failed to ack clear_logs: {e}")
             return
 
         if msg.get("type") == "register_video_sink":
