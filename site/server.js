@@ -3,9 +3,14 @@ const path = require('path');
 const dgram = require('dgram');
 const { WebSocketServer } = require('ws');
 
-function createApp() {
+function createApp(options = {}) {
+  const udpPort = options.udpPort || Number(process.env.UDP_PORT) || 9000;
+
   const app = express();
   app.use(express.static(path.join(__dirname, 'public')));
+  app.get('/api/config', (req, res) => {
+    res.json({ udpPort });
+  });
   return app;
 }
 
@@ -39,7 +44,7 @@ if (require.main === module) {
   const PORT = process.env.PORT || 3000;
   const UDP_PORT = process.env.UDP_PORT || 9000;
 
-  const app = createApp();
+  const app = createApp({ udpPort: UDP_PORT });
   const server = app.listen(PORT, () => {
     console.log(`Control site listening on :${PORT}`);
   });
