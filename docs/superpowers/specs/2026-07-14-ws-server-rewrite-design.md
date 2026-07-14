@@ -65,18 +65,40 @@ over the control WS, where to send frames.
   server-side wrapper exposing the same `send`/`close` surface main.py
   already calls, so `handle_instruction`, `send_ws_status`, etc. don't
   change.
-- New inbound message type, handled alongside the existing `gpio`/`motor`/
-  `set_program_status` cases in `main.py`'s dispatch (not inside
-  `CommandProcessor`, since this concerns the outer transport, not robot
-  hardware):
+- New inbound message type:
   ```json
   { "type": "register_video_sink", "host": "<express-ip>", "port": 9000 }
   ```
-  On receipt, main.py updates the `UdpFrameSender` target (add a
-  `set_target(host, port)` method) so `CameraStreamer` starts sending
-  frames there. If no sink is registered yet, frames are simply dropped
-  (current behavior when nothing listens on the UDP port already amounts to
-  this).
+  **Correction from initial draft:** `UdpFrameSender` is owned by
+  `RobotController`/`CameraStreamer`, which live in the `program_manager`
+  *child* process, not in `main.py` — `main.py` has no direct reference to
+  it. So this message needs no special-casing in `main.py`: it already
+  forwards any message it doesn't recognize (only `get_program_status`/
+  `set_program_status` are intercepted) straight to the child over the
+  existing `_write_instruction_to_child` pipe path. The handling lives in
+  `CommandProcessor` (which already receives hardware objects in its
+  constructor and dispatches on `cmd.get("type")`): add a
+  `udp_frame_sender: UdpFrameSender` constructor param, and a
+  `register_video_sink` branch calling
+  `self.udp_frame_sender.set_target(cmd["host"], cmd["port"])`.
+  `RobotController` passes its existing `self.udp_frame_sender` through
+  when constructing `CommandProcessor`. If no sink is registered yet,
+  frames are simply dropped (current behavior when nothing listens on the
+  UDP port already amounts to this).
+
+  Reference: the `interface` branch (Tkinter desktop control panel,
+  `interface/app.py`) already implements almost this exact server-side
+  pattern today — `websockets.serve(self.handler, "0.0.0.0", 8765)` plus a
+  fixed-port `asyncio.DatagramProtocol` UDP camera receiver
+  (`UDPCameraProtocol`) — except there the *desktop app* is the WS server
+  and the *robot* dials in as client, and the UDP port is static from
+  `config.json` rather than registered dynamically. Our rewrite flips
+  which side hosts the WS server (robot hosts it, browser dials in) per
+  the user's explicit choice, but the message contract
+  (`get_program_status`, `set_program_status`, `send:"logs"`,
+  `audio_chunk`, `program_status`) is unchanged and should match what
+  `interface/app.py`'s handler already expects, since the same message
+  shapes are reused.
 - `config.json`'s `ws_server.host` is no longer used for dialing out; it's
   repurposed (or a new `ws_server.port`/`bind_host` key added) as the
   bind address for the server (default `0.0.0.0:8765`).
