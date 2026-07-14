@@ -108,9 +108,26 @@ function initControlTab(context) {
 
   slider.addEventListener('input', updateAll);
 
+  const controlTabButton = document.querySelector('.tab-button[data-tab="control"]');
+  if (controlTabButton) {
+    controlTabButton.addEventListener('click', () => {
+      lastSent = null;
+    });
+  }
+
+  function isControlInputAllowed() {
+    const controlPanel = document.getElementById('tab-control');
+    if (!controlPanel || !controlPanel.classList.contains('active')) return false;
+    const tag = document.activeElement && document.activeElement.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return false;
+    if (document.activeElement && document.activeElement.isContentEditable) return false;
+    return true;
+  }
+
   const keyMap = { ArrowUp: 'Up', ArrowDown: 'Down', ArrowLeft: 'Left', ArrowRight: 'Right', Shift: 'Shift' };
 
   document.addEventListener('keydown', (event) => {
+    if (!isControlInputAllowed()) return;
     const key = keyMap[event.key];
     if (!key) return;
     if (keyReleaseTimers[key]) {
@@ -124,6 +141,7 @@ function initControlTab(context) {
   });
 
   document.addEventListener('keyup', (event) => {
+    if (!isControlInputAllowed()) return;
     const key = keyMap[event.key];
     if (!key) return;
     if (keyReleaseTimers[key]) {
