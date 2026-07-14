@@ -141,7 +141,6 @@ function initControlTab(context) {
   });
 
   document.addEventListener('keyup', (event) => {
-    if (!isControlInputAllowed()) return;
     const key = keyMap[event.key];
     if (!key) return;
     if (keyReleaseTimers[key]) {
