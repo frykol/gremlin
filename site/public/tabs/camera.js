@@ -22,9 +22,12 @@ function initCameraTab(context) {
   });
 
   captureBtn.addEventListener('click', () => {
+    if (!videoEl.naturalWidth || !videoEl.naturalHeight) {
+      return;
+    }
     const canvas = document.createElement('canvas');
-    canvas.width = videoEl.naturalWidth || videoEl.width;
-    canvas.height = videoEl.naturalHeight || videoEl.height;
+    canvas.width = videoEl.naturalWidth;
+    canvas.height = videoEl.naturalHeight;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(videoEl, 0, 0);
 
