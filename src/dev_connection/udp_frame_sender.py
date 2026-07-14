@@ -12,6 +12,10 @@ class UdpFrameSender:
         self.chunk_size = max(1, chunk_size - HEADER_SIZE)
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
+    def set_target(self, host: str, port: int) -> None:
+        self.host = host
+        self.port = port
+
     def send_frame(self, frame_id: int, timestamp: float, payload: bytes) -> None:
         total_chunks = max(1, (len(payload) + self.chunk_size - 1) // self.chunk_size)
 
