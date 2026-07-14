@@ -1,0 +1,36 @@
+body {
+  font-family: sans-serif;
+  max-width: 640px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+.status {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  font-weight: bold;
+  margin: 1rem 0;
+}
+
+.status-connecting {
+  background: #eab308;
+  color: #000;
+}
+
+.status-connected {
+  background: #16a34a;
+  color: #fff;
+}
+
+.status-disconnected {
+  background: #dc2626;
+  color: #fff;
+}
+
+#video {
+  display: block;
+  max-width: 100%;
+  border: 1px solid #ccc;
+  margin-top: 1rem;
+}

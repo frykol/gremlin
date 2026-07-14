@@ -1,5 +1,23 @@
 <!doctype html>
-<html>
-  <head><title>Gremlin Control</title></head>
-  <body><h1>Gremlin Control</h1></body>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <title>Gremlin Control</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <h1>Gremlin Control</h1>
+
+    <form id="connect-form">
+      <label for="robot-ip">IP robota</label>
+      <input id="robot-ip" name="robot-ip" type="text" placeholder="192.168.1.162" required />
+      <button type="submit">Połącz</button>
+    </form>
+
+    <div id="status" class="status status-disconnected">Rozłączony</div>
+
+    <img id="video" alt="Podgląd kamery" />
+
+    <script src="app.js"></script>
+  </body>
 </html>
