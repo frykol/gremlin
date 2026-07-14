@@ -127,6 +127,7 @@ async def main():
         "cmd_writer": None,
         "tasks": [],
         "last_get_status": None,
+        "last_video_sink": None,
     }
 
     async def send_ws_status(status: str, success: bool = True, message: str | None = None):
@@ -210,6 +211,12 @@ async def main():
         pm_state["cmd_writer"] = cmd_writer
         pm_state["tasks"] = tasks
 
+        if pm_state.get("last_video_sink") is not None:
+            try:
+                await _write_instruction_to_child(pm_state, pm_state["last_video_sink"], stop_program_manager)
+            except Exception as e:
+                print(f"Failed to replay video sink registration to child: {e}")
+
         return True
 
     async def stop_program_manager() -> bool:
@@ -290,6 +297,9 @@ async def main():
             else:
                 await send_ws_status(status, False, "Unknown status value")
             return
+
+        if msg.get("type") == "register_video_sink":
+            pm_state["last_video_sink"] = msg
 
         if await program_is_running():
             try:
