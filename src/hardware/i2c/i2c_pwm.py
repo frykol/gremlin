@@ -1,12 +1,14 @@
 import time
 from smbus2 import SMBus
 
+from .interface import I2CPWMInterface
+
 ADDR = 0x40
 MODE1 = 0x00
 PRESCALE = 0xFE
 LED0 = 0x06
 
-class i2cPWM:
+class i2cPWM(I2CPWMInterface):
     def __init__(self):
         self.started: bool = False 
         self.bus: SMBus | None = None

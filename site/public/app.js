@@ -2,6 +2,7 @@ const form = document.getElementById('connect-form');
 const ipInput = document.getElementById('robot-ip');
 const statusEl = document.getElementById('status');
 const videoEl = document.getElementById('video');
+const videoPlaceholder = document.getElementById('video-placeholder');
 const programStatusEl = document.getElementById('program-status');
 const programOnBtn = document.getElementById('program-on');
 const programOffBtn = document.getElementById('program-off');
@@ -41,6 +42,12 @@ function setProgramStatus(status) {
   programStatusEl.className = `status status-${cssState}`;
 }
 
+function setVideoPlaceholderVisible(visible) {
+  if (videoPlaceholder) {
+    videoPlaceholder.style.display = visible ? 'flex' : 'none';
+  }
+}
+
 onControlMessage((data) => {
   if (data.type === 'get_program_status' || data.type === 'program_status') {
     setProgramStatus(data.status);
@@ -63,6 +70,9 @@ async function connectVideoRelay() {
     videoSocket.close();
   }
 
+  setVideoPlaceholderVisible(true);
+  videoEl.src = '';
+
   videoSocket = new WebSocket(`ws://${window.location.host}/video`);
   videoSocket.binaryType = 'arraybuffer';
 
@@ -72,9 +82,14 @@ async function connectVideoRelay() {
     const previousUrl = currentVideoUrl;
     currentVideoUrl = url;
     videoEl.src = url;
+    setVideoPlaceholderVisible(false);
     if (previousUrl) {
       URL.revokeObjectURL(previousUrl);
     }
+  };
+
+  videoSocket.onerror = () => {
+    setVideoPlaceholderVisible(true);
   };
 
   return udpPort;
@@ -141,8 +156,10 @@ const tabInitializers = [
   typeof initControlTab === 'function' ? initControlTab : null,
   typeof initCameraTab === 'function' ? initCameraTab : null,
   typeof initGpioTab === 'function' ? initGpioTab : null,
+  typeof initEncodersTab === 'function' ? initEncodersTab : null,
   typeof initI2cTab === 'function' ? initI2cTab : null,
   typeof initMicTab === 'function' ? initMicTab : null,
+  typeof initLidarTab === 'function' ? initLidarTab : null,
   typeof initLogTab === 'function' ? initLogTab : null,
 ];
 

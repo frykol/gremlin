@@ -3,11 +3,13 @@ import asyncio
 from src.dev_connection.interface import WSClientInterface
 from src.dev_connection.udp_frame_sender import UdpFrameSender
 from src.hardware.gpio.gpio_controller import GPIOController
-from src.hardware.i2c.i2c_pwm import i2cPWM
+from src.hardware.gpio.encoder_controller import EncoderController
+from src.hardware.i2c.interface import I2CPWMInterface
 from src.hardware.oak_d.interface import CameraInterface
-from src.hardware.respeaker.factory import create_mic_array
 from src.hardware.respeaker.interface import MicArrayInterface
 from src.hardware.sd_card.interface import SdCardInterface
+from src.hardware.ads1115.interface import ADS1115Interface
+from src.hardware.lidar.interface import LidarInterface
 
 from .robot_state import RobotState
 from .services.command_processor import CommandProcessor
@@ -16,11 +18,14 @@ from .services.audio_streamer import AudioStreamer
 from .logic.robot_logic import RobotLogic
 from .workers.camera_worker import CameraWorker
 from .workers.mic_worker import MicWorker
-from .workers.voice_worker import VoiceWorker
+from .ai.voice import Voice
+from .workers.ads1115_worker import ADS1115Worker
+from .workers.lidar_worker import LidarWorker
+from .workers.encoder_worker import EncoderWorker
 
 
 class RobotController:
-    def __init__(self, config: dict, command_queue: asyncio.Queue, gpio: GPIOController, i2c_pwm: i2cPWM, camera: CameraInterface, mic_array: MicArrayInterface, sd_card: SdCardInterface, ws: WSClientInterface):
+    def __init__(self, config: dict, command_queue: asyncio.Queue, gpio: GPIOController, encoder: EncoderController, i2c_pwm: I2CPWMInterface, camera: CameraInterface, mic_array: MicArrayInterface, sd_card: SdCardInterface, ads1115: ADS1115Interface, lidar: LidarInterface, ws: WSClientInterface):
         self.config: dict = config
         self.state: RobotState = RobotState()
         self.sd_card: SdCardInterface = sd_card
@@ -36,6 +41,7 @@ class RobotController:
         self.command_processor = CommandProcessor(
             command_queue=command_queue,
             gpio=gpio,
+            encoder=encoder,
             i2c_pwm=i2c_pwm,
             state=self.state,
             ws=ws,
@@ -52,11 +58,28 @@ class RobotController:
             mic_array=mic_array
         )
 
-        voice_config = config.get("voice", {})
+        self.ads1115_worker = ADS1115Worker(
+            state=self.state,
+            ads1115=ads1115
+        )
 
-        self.voice_worker = VoiceWorker(
-            mic_array=create_mic_array(config),
-            model_path=voice_config.get("model_path", "/robot/model"),
+        self.lidar_worker = LidarWorker(
+            state=self.state,
+            lidar=lidar,
+            config=config,
+        )
+
+        self.encoder_worker = EncoderWorker(
+            state=self.state,
+            encoder=encoder,
+        )
+
+        voice_control_config = config.get("voice", {})
+
+        self.voice = Voice(
+            state=self.state,
+            model_path=voice_control_config.get("model_path", "/home/gremlin/gremlin/model"),
+            logs=voice_control_config.get("dev_logs", False)
         )
 
         fps = config.get("oak_d", {}).get("fps") or 15
@@ -87,7 +110,10 @@ class RobotController:
         self.sd_card.start()
         self.camera_worker.start()
         self.mic_worker.start()
-        self.voice_worker.start()
+        self.voice.start()
+        self.ads1115_worker.start()
+        self.lidar_worker.start()
+        self.encoder_worker.start()
 
         tasks = [
             asyncio.create_task(self.command_processor.run()),
@@ -109,6 +135,9 @@ class RobotController:
 
             await self.camera_worker.stop()
             await self.mic_worker.stop()
-            await self.voice_worker.stop()
+            await self.ads1115_worker.stop()
+            await self.lidar_worker.stop()
+            await self.encoder_worker.stop()
+            self.voice.stop()
             self.udp_frame_sender.close()
             self.sd_card.stop()

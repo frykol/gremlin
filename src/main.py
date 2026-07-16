@@ -13,6 +13,7 @@ from .websocket_config import build_bind_address
 
 
 SIM_LOG = "sim.log"
+SITE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "site")
 
 
 def _is_broken_pipe_error(exc: Exception) -> bool:
@@ -106,6 +107,45 @@ async def _read_pipe_lines(fd, handler):
             pass
 
 
+async def _start_site(log_file) -> asp.Process | None:
+    if not os.path.isdir(SITE_DIR):
+        print(f"Site directory not found at {SITE_DIR}, skipping site start")
+        return None
+
+    try:
+        proc = await asp.create_subprocess_exec(
+            "npm", "start",
+            cwd=SITE_DIR,
+            stdout=asp.PIPE, stderr=asp.PIPE,
+        )
+    except Exception as e:
+        print(f"Failed to start site: {e}")
+        return None
+
+    if proc.stdout:
+        asyncio.create_task(_drain_stream_to_log(proc.stdout, log_file))
+    if proc.stderr:
+        asyncio.create_task(_drain_stream_to_log(proc.stderr, log_file))
+
+    print(f"Site started (pid={proc.pid})")
+    return proc
+
+
+async def _stop_site(proc: asp.Process | None):
+    if proc is None or proc.returncode is not None:
+        return
+
+    try:
+        proc.terminate()
+        try:
+            await asyncio.wait_for(proc.wait(), timeout=5.0)
+        except asyncio.TimeoutError:
+            proc.kill()
+            await proc.wait()
+    except Exception as e:
+        print(f"Error stopping site: {e}")
+
+
 async def main():
     config = load_config("config.json")
 
@@ -176,6 +216,7 @@ async def main():
         resp_read, resp_write = os.pipe()
 
         env = os.environ.copy()
+        env["PYTHONUNBUFFERED"] = "1"
         env["USE_PIPE_WS"] = "1"
         env["PIPE_CMD_FD"] = str(cmd_read)
         env["PIPE_RESP_FD"] = str(resp_write)
@@ -368,6 +409,10 @@ async def main():
             except Exception:
                 pass
 
+    site_proc = None
+    if config.get("enable_site", False):
+        site_proc = await _start_site(log_file)
+
     tasks = [
         asyncio.create_task(process_instructions()),
         ws_task,
@@ -391,6 +436,7 @@ async def main():
         await shutdown_event.wait()
     finally:
         await stop_program_manager()
+        await _stop_site(site_proc)
 
         for t in tasks:
             try:

@@ -5,7 +5,8 @@ import asyncio
 import time
 
 from ..hardware.gpio.gpio_controller import GPIOController
-from ..hardware.i2c.i2c_pwm import i2cPWM
+from ..hardware.gpio.encoder_controller import EncoderController
+from ..hardware.i2c.interface import I2CPWMInterface
 from ..robot_state import RobotState
 from ..dev_connection.interface import WSClientInterface
 
@@ -13,10 +14,11 @@ LOG_PATH = "sim.log"
 WHEEL_STATE_PATH = "/tmp/wheel_state.json"
 
 class CommandProcessor:
-    def __init__(self, command_queue: asyncio.Queue, gpio: GPIOController, i2c_pwm: i2cPWM, state: RobotState, ws: WSClientInterface, udp_frame_sender):
+    def __init__(self, command_queue: asyncio.Queue, gpio: GPIOController, encoder: EncoderController, i2c_pwm: I2CPWMInterface, state: RobotState, ws: WSClientInterface, udp_frame_sender):
         self.command_queue: asyncio.Queue = command_queue
         self.gpio: GPIOController = gpio
-        self.i2c_pwm: i2cPWM = i2c_pwm
+        self.encoder: EncoderController = encoder
+        self.i2c_pwm: I2CPWMInterface = i2c_pwm
         self.state: RobotState = state
         self.ws: WSClientInterface = ws
         self.udp_frame_sender = udp_frame_sender
@@ -58,8 +60,36 @@ class CommandProcessor:
                 elif cmd.get("type") == "register_video_sink":
                     self.udp_frame_sender.set_target(cmd["host"], cmd["port"])
 
+                elif cmd.get("type") == "get_lidar_points":
+                    await self._send_lidar_points()
+
+                elif cmd.get("type") == "get_encoder_ticks":
+                    await self._send_encoder_ticks()
+
+                elif cmd.get("type") == "reset_encoders":
+                    self.encoder.reset(cmd.get("name"))
+                    await self._send_encoder_ticks()
+
         except asyncio.QueueEmpty:
             pass
+
+    async def _send_lidar_points(self) -> None:
+        buffer = self.state.lidar_point_buffer
+        points = buffer.get_points() if buffer is not None else []
+
+        await self.ws.send(json.dumps({
+            "type": "lidar_points",
+            "points": points,
+        }))
+
+    async def _send_encoder_ticks(self) -> None:
+        encoder_state = self.state.encoder_state
+        ticks = encoder_state.ticks if encoder_state is not None else {}
+
+        await self.ws.send(json.dumps({
+            "type": "encoder_ticks",
+            "ticks": ticks,
+        }))
 
     async def _send_log(self) -> None:
         try:

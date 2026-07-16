@@ -1,6 +1,68 @@
+from collections import deque
 from dataclasses import dataclass
+from enum import Enum
+from typing import List, Tuple
+
 from .hardware.oak_d.interface import CameraFrame
 from .hardware.respeaker.interface import AudioChunk
+
+@dataclass
+class ADS1115State:
+    a0: float
+    a1: float
+    a2: float
+    a3: float
+
+
+@dataclass
+class EncoderState:
+    ticks: dict = None
+
+    def __post_init__(self):
+        if self.ticks is None:
+            self.ticks = {}
+
+
+class LidarBufferOverwriteMode(str, Enum):
+    RING = "ring"    # po zapelnieniu nadpisuje najstarsze punkty
+    RESET = "reset"  # po zapelnieniu czysci caly bufor i zaczyna zapelniac od nowa
+
+
+LIDAR_POINT_SIZE_BYTES = 12  # x, y, z jako float32
+
+
+class LidarPointBuffer:
+    """Bufor punktow lidaru o stalej pojemnosci (podawanej w bajtach), z
+    parametryzowanym zachowaniem po zapelnieniu: nadpisywanie od najstarszych
+    (ring) albo pelne czyszczenie i zapelnianie od nowa (reset)."""
+
+    def __init__(
+        self,
+        capacity_bytes: int = 1_048_576,
+        mode: LidarBufferOverwriteMode = LidarBufferOverwriteMode.RING,
+    ):
+        self.capacity_bytes = capacity_bytes
+        self.capacity_points = max(1, capacity_bytes // LIDAR_POINT_SIZE_BYTES)
+        self.mode = mode
+        self._points: deque = deque(
+            maxlen=self.capacity_points if mode is LidarBufferOverwriteMode.RING else None
+        )
+
+    def add_points(self, points: List[Tuple[float, float, float]]) -> None:
+        for point in points:
+            if self.mode is LidarBufferOverwriteMode.RESET and len(self._points) >= self.capacity_points:
+                self._points.clear()
+            self._points.append(point)
+
+    def get_points(self) -> List[Tuple[float, float, float]]:
+        return list(self._points)
+
+    def clear(self) -> None:
+        self._points.clear()
+
+    def __len__(self) -> int:
+        return len(self._points)
+
 
 @dataclass
 class RobotState:
@@ -8,3 +70,6 @@ class RobotState:
     audio_stream_enabled: bool = False
     last_frame: CameraFrame | None = None
     last_audio_chunk: AudioChunk | None = None
+    last_ads1115_state: ADS1115State | None = None
+    lidar_point_buffer: LidarPointBuffer | None = None
+    encoder_state: EncoderState | None = None

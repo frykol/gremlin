@@ -7,6 +7,12 @@
     	"R_EN": 5,
     	"L_EN": 6
     },
+    "encoders": {
+      "FL": [17, 27],
+      "FR": [23, 24],
+      "RL": [5, 6],
+      "RR": [25, 16]
+    },
     "standard_pins": {
       "GPIO4": 4,
       "GPIO5": 5,
@@ -26,7 +32,7 @@
     "width": 800,
     "height": 600,
     "fps": 60,
-    "is_dummy": false
+    "is_dummy": true
   },
   "camera_stream": {
     "udp_host": "192.168.1.162",
@@ -51,12 +57,31 @@
     "is_dummy": true
   },
   "voice": {
-    "model_path": "/robot/model"
+    "model_path": "/home/gremlin/gremlin/model",
+    "dev_logs": false
   },
   "ws_server": {
     "host": "192.168.1.162",
     "port": 8765
   },
   "automatic_disconnect": false,
-  "disconnect_timeout": 2
+  "disconnect_timeout": 2,
+  "enable_site": true,
+  "ads1115": {
+    "bus": 1,
+    "address": 72,
+    "gain": 1,
+    "data_rate": 128,
+    "is_dummy": true
+  },
+  "i2c_pwm": {
+    "is_dummy": true
+  },
+  "lidar": {
+    "port": "/dev/ttyUSB0",
+    "baud": 2000000,
+    "is_dummy": true,
+    "buffer_bytes": 1048576,
+    "overwrite_mode": "ring"
+  }
 }
