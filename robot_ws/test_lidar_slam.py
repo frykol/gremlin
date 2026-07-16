@@ -1,6 +1,9 @@
-import numpy as np
+import json
 
-from lidar_slam import LidarSlam
+import numpy as np
+import pytest
+
+from lidar_slam import LidarSlam, WheelCalibrationError, load_wheel_calibration
 
 
 def make_corner_cloud(n_per_face=200, seed=0):
@@ -140,3 +143,23 @@ def test_add_frame_without_odom_delta_keeps_zero_motion_fallback():
 
     assert status == "ok"
     np.testing.assert_allclose(slam.pose_t, np.zeros(3), atol=0.05)
+
+
+def test_load_wheel_calibration_missing_file_raises_clear_error(tmp_path):
+    missing_path = tmp_path / "does_not_exist.json"
+
+    with pytest.raises(WheelCalibrationError) as excinfo:
+        load_wheel_calibration(str(missing_path))
+
+    assert str(missing_path) in str(excinfo.value)
+    assert "calibrate_wheel_speed.py" in str(excinfo.value)
+
+
+def test_load_wheel_calibration_missing_key_raises_clear_error(tmp_path):
+    bad_path = tmp_path / "wheel_calibration.json"
+    bad_path.write_text(json.dumps({"not_the_right_key": 1.0}))
+
+    with pytest.raises(WheelCalibrationError) as excinfo:
+        load_wheel_calibration(str(bad_path))
+
+    assert str(bad_path) in str(excinfo.value)

@@ -194,10 +194,27 @@ class LidarSlam:
         return "ok"
 
 
+class WheelCalibrationError(Exception):
+    """Podniesione gdy plik kalibracji kol jest brakujacy lub niepoprawny."""
+
+
 def load_wheel_calibration(path):
-    with open(path) as f:
-        data = json.load(f)
-    return float(data["max_wheel_speed_rad_s"])
+    try:
+        with open(path) as f:
+            data = json.load(f)
+        return float(data["max_wheel_speed_rad_s"])
+    except FileNotFoundError as exc:
+        raise WheelCalibrationError(
+            f"wheel calibration file '{path}' is missing or invalid. "
+            "Run robot_ws/calibrate_wheel_speed.py first (see robot_ws/README.md Task 5) "
+            "and write its output to this file before using --odom-state-file."
+        ) from exc
+    except (KeyError, ValueError, json.JSONDecodeError) as exc:
+        raise WheelCalibrationError(
+            f"wheel calibration file '{path}' is missing or invalid. "
+            "Run robot_ws/calibrate_wheel_speed.py first (see robot_ws/README.md Task 5) "
+            "and write its output to this file before using --odom-state-file."
+        ) from exc
 
 
 def main():
@@ -238,7 +255,12 @@ def main():
 
     odom_reader = None
     if args.odom_state_file:
-        max_wheel_speed = load_wheel_calibration(args.wheel_calibration)
+        try:
+            max_wheel_speed = load_wheel_calibration(args.wheel_calibration)
+        except WheelCalibrationError as exc:
+            ap.error(
+                f"--odom-state-file was given but {exc}"
+            )
         odom_reader = WheelOdometryReader(args.odom_state_file, max_wheel_speed)
 
     ser = serial.Serial(args.port, args.baud, timeout=0)
