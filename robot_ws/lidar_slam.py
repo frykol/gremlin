@@ -153,6 +153,17 @@ class LidarSlam:
                 # lokalne minimum mimo wiarygodnej predkosci.
                 odom_predicted_t = dR_odom @ self.pose_t + dt_odom
                 divergence = float(np.linalg.norm(new_pose_t - odom_predicted_t))
+                # Kola napedzane PWM bez enkoderow - predkosc maksymalna jest
+                # kalibrowana jednorazowo recznie, stoperem (patrz
+                # calibrate_wheel_speed.py), wiec odometria kolowa jest z
+                # natury szumiaca/przyblizona. Tolerancja jest wiec celowo
+                # szeroka: 50% przewidywanego dystansu przejazdu + staly
+                # margines 10cm dla ruchu bliskiego zeru (zeby male szumy przy
+                # postoju nie wywalaly klatek). To inna filozofia niz stary,
+                # sztywny limit --max-speed, ktory ogranicza bezwzgledne
+                # przemieszczenie na klatke - tutaj ograniczamy zgodnosc
+                # miedzy dwoma niezaleznymi estymatorami ruchu (ICP vs kola),
+                # niezaleznie od tego jak duzy byl sam ruch.
                 max_divergence = max(0.1, float(np.linalg.norm(dt_odom)) * 0.5 + 0.05)
                 reject = fitness < self.min_fitness or divergence > max_divergence
             else:

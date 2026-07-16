@@ -65,6 +65,68 @@ def test_add_frame_rejects_when_odom_prediction_is_way_off():
     np.testing.assert_allclose(slam.pose_t, np.zeros(3))
 
 
+def make_periodic_cloud(period=0.15, n_clusters=10, n_per_cluster=80, seed=0):
+    """Chmura punktow z powtarzajaca sie struktura wzdluz osi X (rzad
+    klastrow co `period`) - klasyczna pulapka lokalnego minimum ICP:
+    dopasowanie najblizszego sasiada moze "zablokowac sie" na sasiednim
+    powtorzeniu wzorca zamiast prawdziwego odpowiednika, osiagajac wysoki
+    fitness (wiekszosc punktow i tak znajduje jakies bliskie dopasowanie,
+    tylko o okres dalej) przy pozycji przesunietej od prawdziwej."""
+    rng = np.random.default_rng(seed)
+    parts = []
+    for i in range(n_clusters):
+        cx = i * period
+        cluster = np.column_stack([
+            np.full(n_per_cluster, cx) + rng.uniform(-0.02, 0.02, n_per_cluster),
+            rng.uniform(-1, 1, n_per_cluster),
+            rng.uniform(0, 1, n_per_cluster),
+        ])
+        parts.append(cluster)
+    return np.vstack(parts)
+
+
+def test_add_frame_rejects_high_fitness_icp_that_diverges_from_odom():
+    """Izoluje bramke divergencji od bramki fitness: dobieramy scene tak,
+    zeby ICP osiagnal fitness wyraznie powyzej min_fitness (empirycznie
+    fitness=1.00, tj. wszystkie punkty w zasiegu max_corr_dist=0.5
+    znajduja dopasowanie), wiec sam check `fitness < self.min_fitness`
+    zaakceptowalby ta ramke. Odrzucenie musi wiec pochodzic wylacznie z
+    checku divergencji ICP-vs-odometria.
+
+    Mapa ma okresowa strukture (klastry punktow co period=0.15m wzdluz
+    X) - klasyczna pulapka lokalnego minimum ICP. Odometria "twierdzi",
+    ze robot przejechal dokladnie 2 okresy (0.30m), podczas gdy naprawde
+    przesunal sie o 0.03m. Poczatkowe oszacowanie ICP (z odometrii)
+    trafia wiec w poblize powtorzenia wzorca, ale przy max_corr_dist=0.5
+    korespondencje NN i tak "przyciagaja" ICP z powrotem w okolice
+    prawdziwej pozycji (empirycznie: new_pose_t ~= [0.03, 0, 0]) - stad
+    divergencja wzgledem przewidywania odometrii (~0.27m) wyraznie
+    przekracza tolerancje max_divergence = max(0.1, |dt_odom|*0.5+0.05)
+    = 0.20m dla tego dt_odom, mimo perfekcyjnego fitness."""
+    points = make_periodic_cloud()
+    intensity = np.full(len(points), 150.0)
+
+    slam = LidarSlam(min_fitness=0.3, max_speed=100.0)
+    status0 = slam.add_frame(points, intensity, t_stamp=0.0)
+    assert status0 == "ok"
+
+    true_translation = np.array([0.03, 0.0, 0.0])
+    moved_points = points - true_translation
+
+    # Odometria twierdzi, ze robot przejechal dokladnie 2 okresy wzorca
+    # (0.30m), a naprawde przesunal sie o 0.03m - ICP dostaje wiarygodny
+    # (nie zbyt daleki) initial guess i osiaga wysoki fitness, ale w
+    # zupelnie innym miejscu niz przewidziala odometria.
+    dR_odom = np.eye(3)
+    dt_odom = np.array([0.3, 0.0, 0.0])
+    status = slam.add_frame(
+        moved_points, intensity, t_stamp=0.2, odom_delta=(dR_odom, dt_odom)
+    )
+
+    assert status == "rejected"
+    np.testing.assert_allclose(slam.pose_t, np.zeros(3))
+
+
 def test_add_frame_without_odom_delta_keeps_zero_motion_fallback():
     points = make_corner_cloud()
     intensity = np.full(len(points), 150.0)
