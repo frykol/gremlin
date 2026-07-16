@@ -91,6 +91,7 @@ class RobotController:
 
         tasks = [
             asyncio.create_task(self.command_processor.run()),
+            asyncio.create_task(self.command_processor.run_wheel_state_writer()),
             asyncio.create_task(self.camera_streamer.run()),
             asyncio.create_task(self.audio_streamer.run()),
             asyncio.create_task(self.logic.run()),
