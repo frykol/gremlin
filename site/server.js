@@ -1,16 +1,58 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const dgram = require('dgram');
 const { WebSocketServer } = require('ws');
 
 function createApp(options = {}) {
   const udpPort = options.udpPort || Number(process.env.UDP_PORT) || 9000;
+  const configPath = options.configPath || path.join(__dirname, '..', 'config.json');
 
   const app = express();
+  app.use(express.json());
   app.use(express.static(path.join(__dirname, 'public')));
   app.get('/api/config', (req, res) => {
     res.json({ udpPort });
   });
+
+  app.get('/api/robot-config', (req, res) => {
+    let raw;
+    try {
+      raw = fs.readFileSync(configPath, 'utf8');
+    } catch (e) {
+      res.status(404).json({ error: `Config file not found: ${e.message}` });
+      return;
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      res.status(500).json({ error: `Config file is not valid JSON: ${e.message}` });
+      return;
+    }
+
+    res.json(parsed);
+  });
+
+  app.put('/api/robot-config', (req, res) => {
+    const body = req.body;
+    const isPlainObject = body !== null && typeof body === 'object' && !Array.isArray(body);
+    if (!isPlainObject) {
+      res.status(400).json({ error: 'Request body must be a JSON object' });
+      return;
+    }
+
+    try {
+      fs.writeFileSync(configPath, JSON.stringify(body, null, 2) + '\n');
+    } catch (e) {
+      res.status(500).json({ error: `Failed to write config file: ${e.message}` });
+      return;
+    }
+
+    res.json({ success: true });
+  });
+
   return app;
 }
 
