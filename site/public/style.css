@@ -477,3 +477,68 @@ main {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+.config-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.config-group {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  margin: 0;
+}
+
+.config-group legend {
+  padding: 0 0.4rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+}
+
+.config-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.config-row-label {
+  color: var(--muted);
+  min-width: 4rem;
+}
+
+.config-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: space-between;
+}
+
+.config-field input[type="text"],
+.config-field input[type="number"] {
+  background: var(--panel-strong);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 0.4rem 0.6rem;
+}
+
+.config-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.config-status-ok {
+  color: var(--success);
+}
+
+.config-status-error {
+  color: var(--danger);
+}

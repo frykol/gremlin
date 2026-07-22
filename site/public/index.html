@@ -45,6 +45,7 @@
           <button class="tab-button" data-tab="mic">Mikrofon</button>
           <button class="tab-button" data-tab="lidar">Lidar</button>
           <button class="tab-button" data-tab="log">Log</button>
+          <button class="tab-button" data-tab="config">Config</button>
         </nav>
 
         <main>
@@ -161,6 +162,18 @@
               <pre id="log-content"></pre>
             </div>
           </section>
+
+          <section id="tab-config" class="tab-panel">
+            <div class="panel-card">
+              <p class="panel-kicker">Ustawienia</p>
+              <h2>Config</h2>
+              <div id="config-form" class="config-form"></div>
+              <div class="config-actions">
+                <button id="config-save">Zapisz</button>
+                <span id="config-status" class="config-status"></span>
+              </div>
+            </div>
+          </section>
         </main>
       </div>
     </div>
@@ -173,6 +186,7 @@
     <script src="tabs/mic.js"></script>
     <script src="tabs/lidar.js"></script>
     <script src="tabs/log.js"></script>
+    <script src="tabs/config.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

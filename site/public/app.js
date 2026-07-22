@@ -161,6 +161,7 @@ const tabInitializers = [
   typeof initMicTab === 'function' ? initMicTab : null,
   typeof initLidarTab === 'function' ? initLidarTab : null,
   typeof initLogTab === 'function' ? initLogTab : null,
+  typeof initConfigTab === 'function' ? initConfigTab : null,
 ];
 
 for (const init of tabInitializers) {
