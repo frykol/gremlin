@@ -58,6 +58,7 @@ void printHelp() {
         << "  imu                    - pokaz ostatnie dane IMU\n"
         << "  snapshot [plik.csv]   - zapisz ostatnia chmure punktow do CSV\n"
         << "  led off|on|slow|fast|reverse|breath\n"
+        << "  decimate on|off|N        - wl/wyl naprzemienna decymacje albo ustaw cel N punktow\n"
         << "  clear                  - wyzeruj statystyki\n"
         << "  help / h               - pokaz pomoc\n"
         << "  quit / q               - zakoncz program\n\n";
@@ -97,6 +98,27 @@ struct Statistics {
         *this = Statistics{};
     }
 };
+
+// Przerzedza chmure do co najwyzej target_count punktow, biorac punkty co stala liczbe (stride).
+PointCloudUnitree decimateCloud(const PointCloudUnitree& cloud, std::size_t target_count) {
+    if (target_count == 0 || cloud.points.size() <= target_count) {
+        return cloud;
+    }
+
+    PointCloudUnitree decimated = cloud;
+    decimated.points.clear();
+    decimated.points.reserve(target_count);
+
+    const double stride = static_cast<double>(cloud.points.size()) / static_cast<double>(target_count);
+    for (std::size_t i = 0; i < target_count; ++i) {
+        const std::size_t index = std::min(
+            cloud.points.size() - 1,
+            static_cast<std::size_t>(static_cast<double>(i) * stride));
+        decimated.points.push_back(cloud.points[index]);
+    }
+
+    return decimated;
+}
 
 void updateCloudStats(const PointCloudUnitree& cloud, Statistics& stats) {
     stats.clouds_total++;
@@ -583,6 +605,12 @@ int main(int argc, char* argv[]) {
     Clock::time_point cycle_restart_at{};
     auto next_status = Clock::now() + std::chrono::seconds(1);
 
+    // Naprzemienna decymacja: co drugi odebrany cykl skanowania (chmura punktow)
+    // jest przerzedzany do decimate_target punktow, nastepny przechodzi w pelni.
+    bool decimate_enabled = true;
+    bool decimate_this_cycle = true;
+    std::size_t decimate_target = 200;
+
     if (args.autotest) {
         startAutoTest(reader, stats, auto_test, true);
     } else {
@@ -593,9 +621,15 @@ int main(int argc, char* argv[]) {
         const MessageType message = reader->runParse();
 
         switch (message) {
-            case POINTCLOUD:
-                updateCloudStats(reader->getCloud(), stats);
+            case POINTCLOUD: {
+                PointCloudUnitree cloud = reader->getCloud();
+                if (decimate_enabled && decimate_this_cycle) {
+                    cloud = decimateCloud(cloud, decimate_target);
+                }
+                decimate_this_cycle = !decimate_this_cycle;
+                updateCloudStats(cloud, stats);
                 break;
+            }
             case IMU:
                 updateImuStats(reader->getIMU(), stats);
                 break;
@@ -686,6 +720,26 @@ int main(int argc, char* argv[]) {
                 std::string mode;
                 input >> mode;
                 setLed(reader, lowerCopy(mode));
+            } else if (command == "decimate") {
+                std::string arg;
+                if (!(input >> arg)) {
+                    std::cout << "Decymacja: " << (decimate_enabled ? "wlaczona" : "wylaczona")
+                              << ", cel=" << decimate_target << " punktow.\n";
+                } else if (lowerCopy(arg) == "on") {
+                    decimate_enabled = true;
+                    decimate_this_cycle = true;
+                    std::cout << "Decymacja wlaczona (cel=" << decimate_target << ").\n";
+                } else if (lowerCopy(arg) == "off") {
+                    decimate_enabled = false;
+                    std::cout << "Decymacja wylaczona.\n";
+                } else {
+                    try {
+                        decimate_target = static_cast<std::size_t>(std::stoul(arg));
+                        std::cout << "Cel decymacji ustawiony na " << decimate_target << " punktow.\n";
+                    } catch (const std::exception&) {
+                        std::cout << "Uzycie: decimate on|off|N\n";
+                    }
+                }
             } else if (command == "clear") {
                 stats.clear();
                 std::cout << "Statystyki wyzerowane.\n";

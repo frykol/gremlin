@@ -1,6 +1,14 @@
 {
   "dev" : true,
   "is_custom": false,
+  "drivetrain": {
+    "wheel_diameter_mm": 48.0,
+    "ticks_per_revolution": 560,
+    "wheelbase_mm": 160.0,
+    "track_width_mm": 160.0,
+    "encoder_sign": { "FL": 1, "FR": 1, "RL": 1, "RR": 1 },
+    "_TODO_KALIBRACJA": "ticks_per_revolution, wheelbase_mm, track_width_mm i encoder_sign sa placeholderami - patrz naglowek src/logic/mecanum_odometry.py po instrukcje kalibracji. Tylko wheel_diameter_mm jest realnie zmierzone (48mm)."
+  },
   "gpio": {
     "chip": "/dev/gpiochip0",
     "pins":{
@@ -81,7 +89,21 @@
     "port": "/dev/ttyUSB0",
     "baud": 2000000,
     "is_dummy": true,
-    "buffer_bytes": 1048576,
-    "overwrite_mode": "ring"
+    "buffer_bytes": 128000,
+    "overwrite_mode": "ring",
+    "range_min": 0.2,
+    "range_max": 30.0,
+    "intensity_max": 255,
+    "decimate_enabled": true,
+    "decimate_target": 200
+  },
+  "slam": {
+    "enabled": false,
+    "map_size_pixels": 500,
+    "map_size_meters": 10.0,
+    "max_range_mm": 8000.0,
+    "max_points_per_scan": 500,
+    "sigma_xy_mm": 100.0,
+    "sigma_theta_degrees": 20.0
   }
 }

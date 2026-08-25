@@ -13,6 +13,33 @@ from ..dev_connection.interface import WSClientInterface
 LOG_PATH = "sim.log"
 WHEEL_STATE_PATH = "/tmp/wheel_state.json"
 
+
+_COLOR_STOP_DANGER = (0.90, 0.20, 0.20)  # czerwony - slabe odbicie / przeszkoda
+_COLOR_STOP_MID = (0.95, 0.80, 0.20)     # zolty - odbicie posrednie
+_COLOR_STOP_SAFE = (0.15, 0.75, 0.60)    # turkusowy - silne odbicie (np. podloga)
+
+
+def _reflectivity_to_color(intensity: int) -> str:
+    """Mapuje sile odbicia (0-255) na kolor 3-stopniowym gradientem: czerwony
+    (slabe odbicie, np. przeszkoda) -> zolty -> turkusowy (silne odbicie).
+    Ten sam gradient co heightToColor w lidar.js/SLAM, dla spojnosci wizualnej
+    w calej aplikacji. Trzeci, wyrazny punkt posredni (zolty) unika brudnego,
+    trudnego do odczytania fioletu, ktory wychodzi przy interpolacji tylko
+    miedzy dwoma kolorami (np. samym czerwonym i niebieskim)."""
+    ratio = max(0, min(255, intensity)) / 255.0
+
+    if ratio < 0.5:
+        t = ratio / 0.5
+        start, end = _COLOR_STOP_DANGER, _COLOR_STOP_MID
+    else:
+        t = (ratio - 0.5) / 0.5
+        start, end = _COLOR_STOP_MID, _COLOR_STOP_SAFE
+
+    r = round(255 * (start[0] + (end[0] - start[0]) * t))
+    g = round(255 * (start[1] + (end[1] - start[1]) * t))
+    b = round(255 * (start[2] + (end[2] - start[2]) * t))
+    return f"#{r:02x}{g:02x}{b:02x}"
+
 class CommandProcessor:
     def __init__(self, command_queue: asyncio.Queue, gpio: GPIOController, encoder: EncoderController, i2c_pwm: I2CPWMInterface, state: RobotState, ws: WSClientInterface, udp_frame_sender):
         self.command_queue: asyncio.Queue = command_queue
@@ -63,6 +90,9 @@ class CommandProcessor:
                 elif cmd.get("type") == "get_lidar_points":
                     await self._send_lidar_points()
 
+                elif cmd.get("type") == "get_slam_pose":
+                    await self._send_slam_pose()
+
                 elif cmd.get("type") == "get_encoder_ticks":
                     await self._send_encoder_ticks()
 
@@ -77,9 +107,30 @@ class CommandProcessor:
         buffer = self.state.lidar_point_buffer
         points = buffer.get_points() if buffer is not None else []
 
+        colored_points = [
+            {
+                "x": x,
+                "y": y,
+                "z": z,
+                "intensity": intensity,
+                "color": _reflectivity_to_color(intensity),
+            }
+            for x, y, z, intensity in points
+        ]
+
         await self.ws.send(json.dumps({
             "type": "lidar_points",
-            "points": points,
+            "points": colored_points,
+        }))
+
+    async def _send_slam_pose(self) -> None:
+        pose = self.state.robot_pose
+
+        await self.ws.send(json.dumps({
+            "type": "slam_pose",
+            "x_m": pose.x_m if pose is not None else 0.0,
+            "y_m": pose.y_m if pose is not None else 0.0,
+            "theta_deg": pose.theta_deg if pose is not None else 0.0,
         }))
 
     async def _send_encoder_ticks(self) -> None:

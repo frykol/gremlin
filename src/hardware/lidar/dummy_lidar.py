@@ -16,7 +16,7 @@ class DummyLidar(LidarInterface):
         self.running = False
         print("Lidar (dummy) zatrzymany")
 
-    def read_points(self) -> List[Tuple[float, float, float]]:
+    def read_points(self) -> List[Tuple[float, float, float, int]]:
         if not self.running:
             return []
 
@@ -25,6 +25,7 @@ class DummyLidar(LidarInterface):
                 round(random.uniform(-5.0, 5.0), 3),
                 round(random.uniform(0.0, 10.0), 3),
                 round(random.uniform(-1.0, 1.0), 3),
+                random.randint(0, 255),
             )
             for _ in range(20)
         ]

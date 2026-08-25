@@ -12,6 +12,7 @@ class LidarInterface(ABC):
         pass
 
     @abstractmethod
-    def read_points(self) -> List[Tuple[float, float, float]]:
-        """Zwraca punkty [x, y, z] zebrane od ostatniego wywolania (moze byc pusta lista)."""
+    def read_points(self) -> List[Tuple[float, float, float, int]]:
+        """Zwraca punkty [x, y, z, intensity] zebrane od ostatniego wywolania
+        (intensity - sila odbicia 0-255, moze byc pusta lista)."""
         pass

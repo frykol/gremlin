@@ -21,6 +21,7 @@ from .workers.mic_worker import MicWorker
 from .ai.voice import Voice
 from .workers.ads1115_worker import ADS1115Worker
 from .workers.lidar_worker import LidarWorker
+from .workers.slam_worker import SlamWorker
 from .workers.encoder_worker import EncoderWorker
 
 
@@ -69,6 +70,11 @@ class RobotController:
             config=config,
         )
 
+        self.slam_worker = SlamWorker(
+            state=self.state,
+            config=config,
+        )
+
         self.encoder_worker = EncoderWorker(
             state=self.state,
             encoder=encoder,
@@ -113,6 +119,7 @@ class RobotController:
         self.voice.start()
         self.ads1115_worker.start()
         self.lidar_worker.start()
+        self.slam_worker.start()
         self.encoder_worker.start()
 
         tasks = [
@@ -137,6 +144,7 @@ class RobotController:
             await self.mic_worker.stop()
             await self.ads1115_worker.stop()
             await self.lidar_worker.stop()
+            await self.slam_worker.stop()
             await self.encoder_worker.stop()
             self.voice.stop()
             self.udp_frame_sender.close()

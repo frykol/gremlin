@@ -28,7 +28,7 @@ class LidarBufferOverwriteMode(str, Enum):
     RESET = "reset"  # po zapelnieniu czysci caly bufor i zaczyna zapelniac od nowa
 
 
-LIDAR_POINT_SIZE_BYTES = 12  # x, y, z jako float32
+LIDAR_POINT_SIZE_BYTES = 16  # x, y, z jako float32 + intensity jako uint32
 
 
 class LidarPointBuffer:
@@ -48,13 +48,13 @@ class LidarPointBuffer:
             maxlen=self.capacity_points if mode is LidarBufferOverwriteMode.RING else None
         )
 
-    def add_points(self, points: List[Tuple[float, float, float]]) -> None:
+    def add_points(self, points: List[Tuple[float, float, float, int]]) -> None:
         for point in points:
             if self.mode is LidarBufferOverwriteMode.RESET and len(self._points) >= self.capacity_points:
                 self._points.clear()
             self._points.append(point)
 
-    def get_points(self) -> List[Tuple[float, float, float]]:
+    def get_points(self) -> List[Tuple[float, float, float, int]]:
         return list(self._points)
 
     def clear(self) -> None:
@@ -62,6 +62,14 @@ class LidarPointBuffer:
 
     def __len__(self) -> int:
         return len(self._points)
+
+
+@dataclass
+class RobotPose:
+    """Estymacja pozycji robota z SLAM (BreezySLAM/RMHC) - patrz workers/slam_worker.py."""
+    x_m: float = 0.0
+    y_m: float = 0.0
+    theta_deg: float = 0.0
 
 
 @dataclass
@@ -73,3 +81,4 @@ class RobotState:
     last_ads1115_state: ADS1115State | None = None
     lidar_point_buffer: LidarPointBuffer | None = None
     encoder_state: EncoderState | None = None
+    robot_pose: RobotPose | None = None
