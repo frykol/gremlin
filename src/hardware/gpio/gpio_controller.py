@@ -15,6 +15,10 @@ class GPIOController:
         self.request: gpiod.LineRequest | None = None
 
     def setup(self, active: bool = True) -> None:
+        if not self.pins:
+            self.prepared = True
+            return
+
         config = {}
 
         for pin_name, pin_number in self.pins.items():

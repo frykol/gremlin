@@ -12,6 +12,10 @@ class ADS1115State:
     a1: float
     a2: float
     a3: float
+    raw_a0: float = 0.0
+    raw_a1: float = 0.0
+    raw_a2: float = 0.0
+    raw_a3: float = 0.0
 
 
 @dataclass
@@ -65,6 +69,23 @@ class LidarPointBuffer:
 
 
 @dataclass
+class BandDetectionState:
+    both_detected: bool = False
+    left: bool = False
+    right: bool = False
+    last_update: float = 0.0
+    debug_frame: str = ""
+
+
+@dataclass
+class ColorDetectionState:
+    detected: bool = False
+    blue_ratio: float = 0.0
+    last_update: float = 0.0
+    debug_frame: str = ""
+
+
+@dataclass
 class RobotPose:
     """Estymacja pozycji robota z SLAM (BreezySLAM/RMHC) - patrz workers/slam_worker.py."""
     x_m: float = 0.0
@@ -81,4 +102,6 @@ class RobotState:
     last_ads1115_state: ADS1115State | None = None
     lidar_point_buffer: LidarPointBuffer | None = None
     encoder_state: EncoderState | None = None
+    band_detection_state: BandDetectionState | None = None
+    color_detection_state: ColorDetectionState | None = None
     robot_pose: RobotPose | None = None

@@ -1,5 +1,5 @@
 {
-  "dev" : true,
+  "dev": true,
   "is_custom": false,
   "drivetrain": {
     "wheel_diameter_mm": 48.0,
@@ -11,15 +11,24 @@
   },
   "gpio": {
     "chip": "/dev/gpiochip0",
-    "pins":{
-    	"R_EN": 5,
-    	"L_EN": 6
-    },
+    "pins": {},
     "encoders": {
-      "FL": [17, 27],
-      "FR": [23, 24],
-      "RL": [5, 6],
-      "RR": [25, 16]
+      "FL": [
+        17,
+        27
+      ],
+      "FR": [
+        23,
+        24
+      ],
+      "RL": [
+        5,
+        6
+      ],
+      "RR": [
+        25,
+        16
+      ]
     },
     "standard_pins": {
       "GPIO4": 4,
@@ -40,10 +49,28 @@
     "width": 800,
     "height": 600,
     "fps": 60,
-    "is_dummy": true
+    "is_dummy": false
+  },
+  "motors": {
+    "FL": [
+      0,
+      1
+    ],
+    "FR": [
+      3,
+      2
+    ],
+    "RL": [
+      4,
+      5
+    ],
+    "RR": [
+      7,
+      6
+    ]
   },
   "camera_stream": {
-    "udp_host": "192.168.1.162",
+    "udp_host": "192.168.1.215",
     "udp_port": 8766,
     "chunk_size": 1400
   },
@@ -62,33 +89,37 @@
     "chunk_size": 512,
     "device_name": "ReSpeaker 4 Mic Array",
     "stream_channel": 0,
-    "is_dummy": true
+    "is_dummy": false
   },
   "voice": {
     "model_path": "/home/gremlin/gremlin/model",
-    "dev_logs": false
+    "dev_logs": true
   },
   "ws_server": {
-    "host": "192.168.1.162",
+    "host": "192.168.1.215",
     "port": 8765
   },
   "automatic_disconnect": false,
   "disconnect_timeout": 2,
   "enable_site": true,
   "ads1115": {
-    "bus": 1,
-    "address": 72,
+    "bus": 2,
+    "address": 73,
     "gain": 1,
     "data_rate": 128,
-    "is_dummy": true
+    "is_dummy": false,
+    "a0_percent_range": {
+      "min_volts": 10,
+      "max_volts": 16
+    }
   },
   "i2c_pwm": {
-    "is_dummy": true
+    "is_dummy": false
   },
   "lidar": {
     "port": "/dev/ttyUSB0",
     "baud": 2000000,
-    "is_dummy": true,
+    "is_dummy": false,
     "buffer_bytes": 128000,
     "overwrite_mode": "ring",
     "range_min": 0.2,
@@ -105,5 +136,27 @@
     "max_points_per_scan": 500,
     "sigma_xy_mm": 100.0,
     "sigma_theta_degrees": 20.0
+  },
+  "band_detection": {
+    "poll_interval": 0.2,
+    "debounce_count": 5,
+    "roi_half_size": 15,
+    "blue_ratio_threshold": 0.02,
+    "hsv_lower": [
+      85,
+      40,
+      20
+    ],
+    "hsv_upper": [
+      140,
+      255,
+      255
+    ]
+  },
+  "color_detection": {
+    "poll_interval": 0.2,
+    "blue_ratio_threshold": 0.02,
+    "hsv_lower": [85, 40, 20],
+    "hsv_upper": [140, 255, 255]
   }
 }

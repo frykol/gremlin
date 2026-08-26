@@ -4,6 +4,7 @@ gpiod
 smbus2
 websockets
 depthai<3
+mediapipe
 sounddevice
 noisereduce
 scipy

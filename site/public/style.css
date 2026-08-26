@@ -246,6 +246,29 @@ main {
   border-color: rgba(255, 123, 123, 0.22);
 }
 
+.bands-status {
+  display: inline-block;
+  padding: 12px 28px;
+  border-radius: 12px;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  margin: 12px 0 20px;
+  border: 1px solid transparent;
+}
+
+.bands-status-yes {
+  background: rgba(94, 231, 161, 0.16);
+  color: var(--success);
+  border-color: rgba(94, 231, 161, 0.2);
+}
+
+.bands-status-no {
+  background: rgba(255, 123, 123, 0.16);
+  color: var(--danger);
+  border-color: rgba(255, 123, 123, 0.22);
+}
+
 .control-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -253,8 +276,33 @@ main {
   margin-top: 16px;
 }
 
+.bands-preview {
+  display: block;
+  max-width: 100%;
+  margin-top: 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
 .control-grid button {
   padding: 0.95rem 0.8rem;
+}
+
+.dance-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dance-stop-button {
+  grid-column: 1 / -1;
+  background: rgba(255, 123, 123, 0.16);
+  color: var(--danger);
+  border: 1px solid rgba(255, 123, 123, 0.22);
+}
+
+.status-dancing {
+  background: rgba(124, 124, 255, 0.16);
+  color: var(--accent-2);
+  border-color: rgba(124, 124, 255, 0.22);
 }
 
 .gpio-grid,
@@ -291,6 +339,21 @@ main {
   font-size: 1.8rem;
   font-weight: 600;
   margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ads1115-raw {
+  font-size: 0.75rem;
+  color: var(--muted, #8892a4);
+  opacity: 0.6;
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ads1115-percent {
+  font-size: 0.95rem;
+  opacity: 0.8;
+  margin-top: 2px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -396,6 +459,56 @@ main {
   font-size: 0.85rem;
   margin-top: 8px;
   letter-spacing: 0.04em;
+}
+
+.ai-nav-card {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.ai-hint {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin: 0 0 12px;
+}
+
+.ai-status {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin: 10px 0;
+}
+
+.ai-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.ai-target-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-top: 14px;
+}
+
+.ai-target-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.ai-target-row input[type="number"] {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.6rem 0.8rem;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  width: 8rem;
 }
 
 .mic-level {

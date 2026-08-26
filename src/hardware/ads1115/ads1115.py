@@ -1,5 +1,5 @@
 import time
-from typing import List
+from typing import List, Tuple
 
 from smbus2 import SMBus
 
@@ -40,11 +40,14 @@ DATA_RATE_BITS = {
 
 PRZELICZNIK = 16.8 / 3.185
 
+# Możliwe adresy ADS1115 zależnie od podłączenia pinu ADDR (GND/VDD/SDA/SCL).
+CANDIDATE_ADDRESSES = [0x48, 0x49, 0x4A, 0x4B]
+
 
 class ADS1115(ADS1115Interface):
     def __init__(
         self,
-        bus: int = 1,
+        bus: int = 2,
         address: int = 0x48,
         gain: float = 1,
         data_rate: int = 128,
@@ -61,6 +64,33 @@ class ADS1115(ADS1115Interface):
         if self._bus is not None:
             return
         self._bus = SMBus(self.bus_num)
+        self.address = self._resolve_address()
+
+    def _probe_address(self, address: int) -> bool:
+        try:
+            self._bus.read_i2c_block_data(address, CONFIG_REG, 2)
+            return True
+        except OSError:
+            return False
+
+    def _resolve_address(self) -> int:
+        if self._probe_address(self.address):
+            return self.address
+
+        for candidate in CANDIDATE_ADDRESSES:
+            if candidate == self.address:
+                continue
+            if self._probe_address(candidate):
+                print(
+                    f"ADS1115: brak odpowiedzi pod adresem {hex(self.address)} z config.json, "
+                    f"wykryto urzadzenie pod adresem {hex(candidate)}"
+                )
+                return candidate
+
+        raise RuntimeError(
+            f"ADS1115: nie znaleziono urzadzenia pod zadnym z adresow "
+            f"{[hex(self.address)] + [hex(a) for a in CANDIDATE_ADDRESSES if a != self.address]}"
+        )
 
     def stop(self) -> None:
         if self._bus is not None:
@@ -93,11 +123,11 @@ class ADS1115(ADS1115Interface):
 
         return raw
 
-    def read_channels(self) -> List[float]:
+    def read_channels(self) -> List[Tuple[float, float]]:
         voltages = []
         for channel in range(4):
             raw = self._read_raw(channel)
-            voltage = raw * self._lsb
-            voltages.append(voltage * PRZELICZNIK)
+            raw_voltage = raw * self._lsb
+            voltages.append((raw_voltage, raw_voltage * PRZELICZNIK))
 
         return voltages

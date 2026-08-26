@@ -27,6 +27,8 @@ class WsServer:
         try:
             async for message in websocket:
                 json_message = json.loads(message)
+                if json_message.get("type") == "register_video_sink":
+                    json_message["host"] = websocket.remote_address[0]
                 await self.instruction_tab.put(json_message)
         finally:
             if self._connection is websocket:

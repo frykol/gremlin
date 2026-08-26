@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Tuple
 
 class ADS1115Interface(ABC):
     @abstractmethod
@@ -11,6 +11,6 @@ class ADS1115Interface(ABC):
         pass
 
     @abstractmethod
-    def read_channels(self) -> List[float]:
-        """Zwraca przeliczone napięcia (po PRZELICZNIK) dla kanałów AIN0-AIN3."""
+    def read_channels(self) -> List[Tuple[float, float]]:
+        """Zwraca (surowe napięcie na ADC, przeliczone napięcie po PRZELICZNIK) dla kanałów AIN0-AIN3."""
         pass

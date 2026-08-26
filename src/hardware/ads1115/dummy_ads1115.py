@@ -1,7 +1,11 @@
 import random
-from typing import List
+from typing import List, Tuple
 
 from .interface import ADS1115Interface
+
+# Powiela stosunek PRZELICZNIK z ads1115.py, żeby symulowane surowe
+# napięcie ADC było spójne z przeliczonym napięciem.
+DUMMY_PRZELICZNIK = 16.8 / 3.185
 
 
 class FakeADS1115(ADS1115Interface):
@@ -16,8 +20,14 @@ class FakeADS1115(ADS1115Interface):
         self.running = False
         print("ADS1115 (dummy) zatrzymany")
 
-    def read_channels(self) -> List[float]:
+    def read_channels(self) -> List[Tuple[float, float]]:
         if not self.running:
-            return [0.0, 0.0, 0.0, 0.0]
+            return [(0.0, 0.0)] * 4
 
-        return [round(random.uniform(0.0, 16.8), 3) for _ in range(4)]
+        result = []
+        for _ in range(4):
+            voltage = round(random.uniform(0.0, 16.8), 3)
+            raw_voltage = voltage / DUMMY_PRZELICZNIK
+            result.append((raw_voltage, voltage))
+
+        return result

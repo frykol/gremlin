@@ -10,7 +10,18 @@ function createApp(options = {}) {
 
   const app = express();
   app.use(express.json());
-  app.use(express.static(path.join(__dirname, 'public')));
+  app.use(express.static(path.join(__dirname, 'public'), {
+    // Skrypty tabow (np. lidar.js/ai.js) zmieniaja sie czesto podczas
+    // rozwoju - bez tego przegladarka potrafi trzymac stara wersje w
+    // cache'u HTTP i strona dziala na nieaktualnym kodzie mimo zmian na
+    // dysku (widoczne np. jako stare kolorowanie chmury punktow po
+    // deployu nowej wersji).
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.js')) {
+        res.setHeader('Cache-Control', 'no-cache');
+      }
+    },
+  }));
   app.get('/api/config', (req, res) => {
     res.json({ udpPort });
   });

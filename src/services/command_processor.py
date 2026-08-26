@@ -100,6 +100,15 @@ class CommandProcessor:
                     self.encoder.reset(cmd.get("name"))
                     await self._send_encoder_ticks()
 
+                elif cmd.get("type") == "get_ads1115_values":
+                    await self._send_ads1115_values()
+
+                elif cmd.get("type") == "get_band_detection_state":
+                    await self._send_band_detection_state()
+
+                elif cmd.get("type") == "get_color_detection_state":
+                    await self._send_color_detection_state()
+
         except asyncio.QueueEmpty:
             pass
 
@@ -140,6 +149,46 @@ class CommandProcessor:
         await self.ws.send(json.dumps({
             "type": "encoder_ticks",
             "ticks": ticks,
+        }))
+
+    async def _send_ads1115_values(self) -> None:
+        ads_state = self.state.last_ads1115_state
+
+        await self.ws.send(json.dumps({
+            "type": "ads1115_values",
+            "values": {
+                "a0": ads_state.a0,
+                "a1": ads_state.a1,
+                "a2": ads_state.a2,
+                "a3": ads_state.a3,
+                "raw_a0": ads_state.raw_a0,
+                "raw_a1": ads_state.raw_a1,
+                "raw_a2": ads_state.raw_a2,
+                "raw_a3": ads_state.raw_a3,
+            } if ads_state is not None else {},
+        }))
+
+    async def _send_band_detection_state(self) -> None:
+        band_state = self.state.band_detection_state
+
+        await self.ws.send(json.dumps({
+            "type": "band_detection_state",
+            "both_detected": band_state.both_detected if band_state is not None else False,
+            "left": band_state.left if band_state is not None else False,
+            "right": band_state.right if band_state is not None else False,
+            "last_update": band_state.last_update if band_state is not None else 0.0,
+            "debug_frame": band_state.debug_frame if band_state is not None else "",
+        }))
+
+    async def _send_color_detection_state(self) -> None:
+        color_state = self.state.color_detection_state
+
+        await self.ws.send(json.dumps({
+            "type": "color_detection_state",
+            "detected": color_state.detected if color_state is not None else False,
+            "blue_ratio": color_state.blue_ratio if color_state is not None else 0.0,
+            "last_update": color_state.last_update if color_state is not None else 0.0,
+            "debug_frame": color_state.debug_frame if color_state is not None else "",
         }))
 
     async def _send_log(self) -> None:

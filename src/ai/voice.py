@@ -1,6 +1,6 @@
 import argparse
+import asyncio
 import json
-import threading
 import time
 
 import numpy as np
@@ -111,9 +111,6 @@ class Voice:
     def __init__(self, state: RobotState, model_path: str, logs: bool):
         self.state: RobotState = state
 
-        self.running: bool = False
-        self.thread: threading.Thread | None = None
-
         self._speed_scale = 1.0
         self._last_action = None
         self._last_time = 0.0
@@ -131,16 +128,17 @@ class Voice:
 
         self._logs = logs
 
-    def run(self):
-        while self.running:
+    async def run(self):
+        while True:
             chunk = self.state.last_audio_chunk
 
             if chunk is not None and chunk is not self._last_chunk:
                 self._last_chunk = chunk
 
                 data = np.asarray(chunk.samples).astype(np.int16).tobytes()
-                if self._recognizer.AcceptWaveform(data):
-                    result = json.loads(self._recognizer.Result())
+                accepted, result_json = await asyncio.to_thread(self._process_chunk, data)
+                if accepted:
+                    result = json.loads(result_json)
                     text = result.get('text', '').strip()
                     if text:
                         self._handle_text(text)
@@ -152,21 +150,14 @@ class Voice:
                 #         print(f'[słucham] "{partial_text}"')
             else:
                 # Nie ma jeszcze nowego chunku — nie zajmuj rdzenia w petli.
-                time.sleep(0.001)
+                await asyncio.sleep(0.001)
 
-    def start(self):
-        if self.running:
-            return
-
-        self.running = True
-        self.thread = threading.Thread(target=self.run, daemon=True)
-        self.thread.start()
-
-    def stop(self):
-        self.running = False
-
-        if self.thread is not None:
-            self.thread.join()
+    def _process_chunk(self, data: bytes) -> tuple[bool, str]:
+        """Blokujace, ciezkie obliczeniowo wywolanie Vosk. Uruchamiane przez
+        asyncio.to_thread, zeby nie zamrazac petli zdarzen (a wiec i innych
+        taskow, np. CommandProcessor obslugujacego komendy z Control/I2C)."""
+        accepted = self._recognizer.AcceptWaveform(data)
+        return accepted, self._recognizer.Result() if accepted else ''
 
     def _handle_text(self, text: str):
         if self._logs: print(f'[słyszę] "{text}"')
@@ -233,14 +224,10 @@ def main(args=None):
     state = RobotState()
     voice = Voice(state=state, model_path=parsed.model)
 
-    voice.start()
     try:
-        while voice.running:
-            time.sleep(0.1)
+        asyncio.run(voice.run())
     except KeyboardInterrupt:
         pass
-    finally:
-        voice.stop()
 
 
 if __name__ == '__main__':

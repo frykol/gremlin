@@ -1,7 +1,7 @@
 import asyncio
 
 import gpiod
-from gpiod.line import Direction, Edge
+from gpiod.line import Bias, Direction, Edge, Value
 
 # Tablica przejsc kwadratury: klucz = (stary_stan << 2) | nowy_stan,
 # gdzie stan = (A << 1) | B. Nieprawidlowe (pominiete) przejscia -> 0.
@@ -38,6 +38,7 @@ class EncoderController:
                 config[pin] = gpiod.LineSettings(
                     direction=Direction.INPUT,
                     edge_detection=Edge.BOTH,
+                    bias=Bias.PULL_UP,
                 )
 
         self.request = gpiod.request_lines(
@@ -48,7 +49,9 @@ class EncoderController:
 
         for name, (pin_a, pin_b) in self.encoders.items():
             values = self.request.get_values([pin_a, pin_b])
-            self._line_state[name] = (int(values[0]) << 1) | int(values[1])
+            bit_a = 1 if values[0] is Value.ACTIVE else 0
+            bit_b = 1 if values[1] is Value.ACTIVE else 0
+            self._line_state[name] = (bit_a << 1) | bit_b
 
     def start(self) -> None:
         if self.request is None:

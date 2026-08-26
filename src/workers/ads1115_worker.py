@@ -16,11 +16,18 @@ class ADS1115Worker:
         loop = asyncio.get_running_loop()
 
         while self.running:
-            channels = await loop.run_in_executor(None, self.ads1115.read_channels)
+            try:
+                channels = await loop.run_in_executor(None, self.ads1115.read_channels)
+            except Exception as exc:
+                print(f"ADS1115 read error: {exc}")
+                channels = None
 
             if channels is not None:
-                a0, a1, a2, a3 = channels
-                self.state.last_ads1115_state = ADS1115State(a0=a0, a1=a1, a2=a2, a3=a3)
+                (raw_a0, a0), (raw_a1, a1), (raw_a2, a2), (raw_a3, a3) = channels
+                self.state.last_ads1115_state = ADS1115State(
+                    a0=a0, a1=a1, a2=a2, a3=a3,
+                    raw_a0=raw_a0, raw_a1=raw_a1, raw_a2=raw_a2, raw_a3=raw_a3,
+                )
 
             await asyncio.sleep(self.poll_interval)
 

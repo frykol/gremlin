@@ -42,6 +42,9 @@
           <button class="tab-button" data-tab="gpio">GPIO</button>
           <button class="tab-button" data-tab="encoders">Enkodery</button>
           <button class="tab-button" data-tab="i2c">I2C</button>
+          <button class="tab-button" data-tab="ads1115">ADS1115</button>
+          <button class="tab-button" data-tab="bands">Opaski</button>
+          <button class="tab-button" data-tab="color-detection">OpenCV Kolor</button>
           <button class="tab-button" data-tab="mic">Mikrofon</button>
           <button class="tab-button" data-tab="lidar">Lidar</button>
           <button class="tab-button" data-tab="log">Log</button>
@@ -63,6 +66,20 @@
                 <button data-direction="Full lewo">Full lewo</button>
                 <button data-direction="Full prawo">Full prawo</button>
                 <button data-direction="Tył">Tył</button>
+              </div>
+            </div>
+
+            <div class="panel-card">
+              <p class="panel-kicker">Zabawa</p>
+              <h2>Tańce</h2>
+              <div id="dance-status" class="status status-disconnected">BRAK TAŃCA</div>
+              <div class="control-grid dance-grid">
+                <button id="dance-bujanie" data-dance="bujanie">Bujanie</button>
+                <button id="dance-krok" data-dance="krok">Krok w bok</button>
+                <button id="dance-zygzak" data-dance="zygzak">Zygzak</button>
+                <button id="dance-szal" data-dance="szal">Szał</button>
+                <button id="dance-spinjitsu" data-dance="spinjitsu">Spinjitsu</button>
+                <button id="dance-stop" class="dance-stop-button">Stop tańca</button>
               </div>
             </div>
           </section>
@@ -114,6 +131,48 @@
             </div>
           </section>
 
+          <section id="tab-ads1115" class="tab-panel">
+            <div class="panel-card">
+              <p class="panel-kicker">Peryferia</p>
+              <h2>ADS1115</h2>
+              <div id="ads1115-grid" class="encoders-grid"></div>
+            </div>
+          </section>
+
+          <section id="tab-bands" class="tab-panel">
+            <div class="panel-card">
+              <p class="panel-kicker">AI</p>
+              <h2>Opaski na kostkach</h2>
+              <div id="bands-status" class="bands-status bands-status-no">NIE</div>
+              <div class="encoders-grid">
+                <div class="encoder-card">
+                  <div class="encoder-label">Lewa</div>
+                  <div id="bands-left" class="encoder-value">NIE</div>
+                </div>
+                <div class="encoder-card">
+                  <div class="encoder-label">Prawa</div>
+                  <div id="bands-right" class="encoder-value">NIE</div>
+                </div>
+              </div>
+              <img id="bands-preview" class="bands-preview" alt="Podgląd detekcji opasek" />
+            </div>
+          </section>
+
+          <section id="tab-color-detection" class="tab-panel">
+            <div class="panel-card">
+              <p class="panel-kicker">OpenCV</p>
+              <h2>Wykrywanie koloru niebieskiego</h2>
+              <div id="color-detection-status" class="bands-status bands-status-no">NIE</div>
+              <div class="encoders-grid">
+                <div class="encoder-card">
+                  <div class="encoder-label">Udział niebieskiego</div>
+                  <div id="color-detection-ratio" class="encoder-value">0.0%</div>
+                </div>
+              </div>
+              <img id="color-detection-preview" class="bands-preview" alt="Podgląd wykrywania koloru" />
+            </div>
+          </section>
+
           <section id="tab-mic" class="tab-panel">
             <div class="panel-card">
               <p class="panel-kicker">Audio</p>
@@ -151,6 +210,58 @@
                 <button id="lidar-reset-rotation">Reset obrotu</button>
               </div>
               <div id="lidar-rotation-label" class="lidar-rotation-label">obrót X:0° Y:0° Z:90°</div>
+
+              <div class="ai-nav-card">
+                <p class="panel-kicker">Nawigacja (AI)</p>
+                <h2>Mapa lokalna i najkrótsza ścieżka</h2>
+                <p class="ai-hint">
+                  Lokalna "costmapa" do bieżącego omijania przeszkód — zawsze zakłada, że robot
+                  jest w środku (0,0). Przeszkody rysowane są jako pionowe słupki (czerwona kreska =
+                  od podłogi do wykrytej wysokości przeszkody, pomarańczowa kropka = szczyt),
+                  fioletowa linia = trasa, zielona kropka = robot. To celowo NIE śledzi ruchu
+                  robota — do tego służy sekcja SLAM poniżej.
+                </p>
+                <div class="ai-controls">
+                  <button id="ai-map-start">Start mapowania</button>
+                  <button id="ai-map-stop">Stop mapowania</button>
+                  <button id="ai-map-clear" class="secondary">Wyczyść mapę</button>
+                </div>
+                <div class="ai-target-row">
+                  <label>Wys. min (m)<input id="ai-height-min" type="number" step="0.05" value="0.05" /></label>
+                  <label>Wys. max (m)<input id="ai-height-max" type="number" step="0.05" value="0.6" /></label>
+                </div>
+                <p class="ai-hint">
+                  Zakres wysokości filtruje punkty LiDAR liczone jako przeszkoda (odcina podłogę i
+                  sufit). Dostosuj do rzeczywistego montażu czujnika, jeśli mapa dalej wygląda źle.
+                </p>
+                <div class="ai-target-row">
+                  <label>Cel X (prawo, m)<input id="ai-target-x" type="number" step="0.1" value="0" /></label>
+                  <label>Cel Y (przód, m)<input id="ai-target-y" type="number" step="0.1" value="2" /></label>
+                  <button id="ai-target-set">Ustaw cel</button>
+                </div>
+                <div id="ai-status" class="ai-status">Brak celu</div>
+                <button id="ai-run-path">Jedź trasą</button>
+              </div>
+
+              <div class="ai-nav-card">
+                <p class="panel-kicker">SLAM</p>
+                <h2>Globalna mapa i pozycja robota</h2>
+                <p class="ai-hint">
+                  Prawdziwe (uproszczone do 2D) dopasowanie kolejnych skanów LiDAR do zbudowanej
+                  dotąd mapy (scan-to-map ICP) — robot estymuje własny ruch (x, z, obrót) BEZ
+                  polegania na enkoderach kół. Biała linia = przebyta trasa, biała kropka = bieżąca
+                  estymowana pozycja, chmura kolorowana wg wysokości = zaakumulowana mapa świata.
+                  To nie jest pełny 3D LOAM z ekstrakcją cech i zamykaniem pętli (dryf pozycji w
+                  czasie jest oczekiwany) — to najbliższe realnemu SLAM-owi, co da się rozsądnie
+                  zrobić bez dedykowanego silnika robotyki.
+                </p>
+                <div class="ai-controls">
+                  <button id="slam-start">Start SLAM</button>
+                  <button id="slam-stop">Stop SLAM</button>
+                  <button id="slam-reset" class="secondary">Reset SLAM</button>
+                </div>
+                <div id="slam-status" class="ai-status">SLAM zatrzymany</div>
+              </div>
             </div>
           </section>
 
@@ -183,7 +294,12 @@
     <script src="tabs/gpio.js"></script>
     <script src="tabs/encoders.js"></script>
     <script src="tabs/i2c.js"></script>
+    <script src="tabs/ads1115.js"></script>
+    <script src="tabs/bands.js"></script>
+    <script src="tabs/color-detection.js"></script>
     <script src="tabs/mic.js"></script>
+    <script src="tabs/ai.js"></script>
+    <script src="tabs/slam.js"></script>
     <script src="tabs/lidar.js"></script>
     <script src="tabs/log.js"></script>
     <script src="tabs/config.js"></script>
