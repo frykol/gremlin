@@ -3,7 +3,7 @@ from typing import Optional
 
 import numpy as np
 
-from .interface import MicArrayInterface, AudioChunk
+from .interface import AudioFilterConfig, MicArrayInterface, AudioChunk, NoiseProfileStatus
 
 class FakeReSpeakerMicArray(MicArrayInterface):
     def __init__(
@@ -18,6 +18,26 @@ class FakeReSpeakerMicArray(MicArrayInterface):
 
         self.running: bool = False
         self.chunk_id: int = 0
+        self._filter_config = AudioFilterConfig()
+        self._noise_profile_status = NoiseProfileStatus()
+
+    def get_filter_config(self) -> AudioFilterConfig:
+        return self._filter_config
+
+    def update_filter_config(self, config: AudioFilterConfig) -> None:
+        self._filter_config = config
+
+    def start_noise_profile_calibration(self) -> None:
+        self._noise_profile_status = NoiseProfileStatus(is_calibrating=True, has_profile=self._noise_profile_status.has_profile)
+
+    def stop_noise_profile_calibration(self) -> None:
+        self._noise_profile_status = NoiseProfileStatus(is_calibrating=False, has_profile=True)
+
+    def reset_noise_profile(self) -> None:
+        self._noise_profile_status = NoiseProfileStatus()
+
+    def get_noise_profile_status(self) -> NoiseProfileStatus:
+        return self._noise_profile_status
 
     def start(self) -> None:
         self.running = True

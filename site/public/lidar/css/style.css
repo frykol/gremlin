@@ -1,0 +1,46 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #0a0e17;
+  color: #f4f6fb;
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+#panel {
+  max-width: 1400px;
+  margin: 24px auto;
+}
+
+#viewer-canvas {
+  width: 100%;
+  height: 640px;
+  display: block;
+  border-radius: 10px;
+  background: #060911;
+}
+
+/* Widoczny sygnal "brak danych" - spec zabrania udawania, ze wszystko
+   dziala, gdy strumien padl. */
+#connection-banner {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  padding: 10px 16px;
+  background: #7a1d24;
+  color: #ffe9ea;
+  font-size: 14px;
+  text-align: center;
+}
+
+#connection-banner.visible {
+  display: block;
+}
+
+#imu-panel, #metrics-panel {
+  font-size: 13px;
+  color: #7d8aa3;
+  white-space: pre-wrap;
+}

@@ -8,6 +8,7 @@ from .hardware.respeaker.factory import create_mic_array
 from .hardware.sd_card.factory import create_sd_card
 from .hardware.ads1115.factory import create_ads1115
 from .hardware.lidar.factory import create_lidar
+from .hardware.speaker.factory import create_speaker
 from .dev_connection.client_factory import create_client
 from .dev_connection.client import WSClientInterface
 from .robot_controller import RobotController
@@ -37,6 +38,7 @@ async def init(config: dict) -> None:
     sd_card = create_sd_card(config)
     ads1115 = create_ads1115(config)
     lidar = create_lidar(config)
+    speaker = create_speaker(config)
 
     gpio_c = GPIOController()
     gpio_c.setup()
@@ -62,6 +64,7 @@ async def init(config: dict) -> None:
         sd_card=sd_card,
         ads1115=ads1115,
         lidar=lidar,
+        speaker=speaker,
         ws=ws
     )
 

@@ -1,5 +1,9 @@
 from .interface import MicArrayInterface
 from .dummy_respeaker import FakeReSpeakerMicArray
+from ..status_log import log_device_status
+
+DEVICE_NAME = "MIC"
+
 
 def create_mic_array(config: dict) -> MicArrayInterface:
     respeaker_config = config.get("respeaker", {})
@@ -13,13 +17,30 @@ def create_mic_array(config: dict) -> MicArrayInterface:
     if not is_dummy:
         from .respeaker import ReSpeakerMicArray
 
-        return ReSpeakerMicArray(
-            sample_rate=sample_rate,
-            channels=channels,
-            chunk_size=chunk_size,
-            device_name=device_name,
-        )
+        try:
+            mic = ReSpeakerMicArray(
+                sample_rate=sample_rate,
+                channels=channels,
+                chunk_size=chunk_size,
+                device_name=device_name,
+            )
+            # Strumien audio otwiera sie dopiero w start(), nie w __init__ -
+            # bez tego wywolania brak/awaria mikrofonu nigdy nie trafialaby do try.
+            mic.start()
+        except Exception as e:
+            log_device_status(DEVICE_NAME, "ERROR")
+            print(f"Failed to initialize {DEVICE_NAME}: {e}")
+            log_device_status(DEVICE_NAME, "ERROR - FALLBACK TO DUMMY")
+            return FakeReSpeakerMicArray(
+                sample_rate=sample_rate,
+                channels=channels,
+                chunk_size=chunk_size,
+            )
 
+        log_device_status(DEVICE_NAME, "SUCCESS")
+        return mic
+
+    log_device_status(DEVICE_NAME, "SUCCESS - DUMMY")
     return FakeReSpeakerMicArray(
         sample_rate=sample_rate,
         channels=channels,

@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { computeChannelValues, recalcDirections, DANCES } = require('../public/tabs/control.js');
+const { computeChannelValues, computeChannelValuesFromVector, recalcDirections, DANCES } = require('../public/tabs/control.js');
 
 test('computeChannelValues drives front-left/front-right channels forward for Przód', () => {
   const values = computeChannelValues(new Set(['Przód']), 100);
@@ -28,6 +28,45 @@ test('computeChannelValues is all-zero with no active directions', () => {
   for (let i = 0; i < 8; i++) {
     assert.equal(values[i], 0);
   }
+});
+
+test('computeChannelValuesFromVector drives forward channels for positive vy', () => {
+  const values = computeChannelValuesFromVector(1, 0, 0, 100);
+  const forward = computeChannelValues(new Set(['Przód']), 100);
+  assert.deepEqual(values, forward);
+});
+
+test('computeChannelValuesFromVector drives reverse channels for negative vy', () => {
+  const values = computeChannelValuesFromVector(-1, 0, 0, 100);
+  const reverse = computeChannelValues(new Set(['Tył']), 100);
+  assert.deepEqual(values, reverse);
+});
+
+test('computeChannelValuesFromVector strafes right for positive vx', () => {
+  const values = computeChannelValuesFromVector(0, 1, 0, 100);
+  const strafeRight = computeChannelValues(new Set(['Full prawo']), 100);
+  assert.deepEqual(values, strafeRight);
+});
+
+test('computeChannelValuesFromVector rotates right for positive omega', () => {
+  const values = computeChannelValuesFromVector(0, 0, 1, 100);
+  const rotateRight = computeChannelValues(new Set(['Prawo']), 100);
+  assert.deepEqual(values, rotateRight);
+});
+
+test('computeChannelValuesFromVector is all-zero for a zero vector', () => {
+  const values = computeChannelValuesFromVector(0, 0, 0, 100);
+  for (let i = 0; i < 8; i++) {
+    assert.equal(values[i], 0);
+  }
+});
+
+test('computeChannelValuesFromVector combines vy and omega proportionally (turning right while driving forward slows the left side, speeds the right side)', () => {
+  const values = computeChannelValuesFromVector(1, 0, 0.5, 100);
+  assert.equal(values[0], 0);
+  assert.equal(values[1], 50);
+  assert.equal(values[2], 0);
+  assert.equal(values[3], 100);
 });
 
 test('recalcDirections maps arrow keys to direction names', () => {

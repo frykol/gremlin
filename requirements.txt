@@ -3,6 +3,7 @@ opencv-python
 gpiod
 smbus2
 websockets
+aiohttp
 depthai<3
 mediapipe
 sounddevice
@@ -10,3 +11,7 @@ noisereduce
 scipy
 soundfile
 pyserial
+pydub
+scikit-learn
+audioop-lts; python_version >= "3.13"
+vosk

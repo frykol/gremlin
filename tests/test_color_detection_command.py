@@ -59,6 +59,10 @@ def test_get_color_detection_state_sends_current_state_over_ws():
             "blue_ratio": 0.42,
             "last_update": 123.0,
             "debug_frame": "",
+            "blue_bboxes": [],
+            "yellow_bboxes": [],
+            "target_bbox": None,
+            "green_on_yellow_detected": False,
         }]
 
     asyncio.run(run_test())

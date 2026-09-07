@@ -2,11 +2,16 @@
   "dev": true,
   "is_custom": false,
   "drivetrain": {
-    "wheel_diameter_mm": 48.0,
+    "wheel_diameter_mm": 48,
     "ticks_per_revolution": 560,
-    "wheelbase_mm": 160.0,
-    "track_width_mm": 160.0,
-    "encoder_sign": { "FL": 1, "FR": 1, "RL": 1, "RR": 1 },
+    "wheelbase_mm": 160,
+    "track_width_mm": 160,
+    "encoder_sign": {
+      "FL": 1,
+      "FR": 1,
+      "RL": 1,
+      "RR": 1
+    },
     "_TODO_KALIBRACJA": "ticks_per_revolution, wheelbase_mm, track_width_mm i encoder_sign sa placeholderami - patrz naglowek src/logic/mecanum_odometry.py po instrukcje kalibracji. Tylko wheel_diameter_mm jest realnie zmierzone (48mm)."
   },
   "gpio": {
@@ -89,6 +94,10 @@
     "chunk_size": 512,
     "device_name": "ReSpeaker 4 Mic Array",
     "stream_channel": 0,
+    "is_dummy": true
+  },
+  "speaker": {
+    "alsa_device": "plughw:CARD=sndrpihifiberry,DEV=0",
     "is_dummy": false
   },
   "voice": {
@@ -111,19 +120,21 @@
     "a0_percent_range": {
       "min_volts": 10,
       "max_volts": 16
-    }
+    },
+    "shutdown_min_voltage": 12
   },
   "i2c_pwm": {
     "is_dummy": false
   },
   "lidar": {
     "port": "/dev/ttyUSB0",
+    "external_bridge": true,
     "baud": 2000000,
     "is_dummy": false,
     "buffer_bytes": 128000,
     "overwrite_mode": "ring",
     "range_min": 0.2,
-    "range_max": 30.0,
+    "range_max": 30,
     "intensity_max": 255,
     "decimate_enabled": true,
     "decimate_target": 200
@@ -131,11 +142,11 @@
   "slam": {
     "enabled": false,
     "map_size_pixels": 500,
-    "map_size_meters": 10.0,
-    "max_range_mm": 8000.0,
+    "map_size_meters": 10,
+    "max_range_mm": 8000,
     "max_points_per_scan": 500,
-    "sigma_xy_mm": 100.0,
-    "sigma_theta_degrees": 20.0
+    "sigma_xy_mm": 100,
+    "sigma_theta_degrees": 20
   },
   "band_detection": {
     "poll_interval": 0.2,
@@ -156,7 +167,25 @@
   "color_detection": {
     "poll_interval": 0.2,
     "blue_ratio_threshold": 0.02,
-    "hsv_lower": [85, 40, 20],
-    "hsv_upper": [140, 255, 255]
+    "hsv_lower": [
+      35,
+      40,
+      60
+    ],
+    "hsv_upper": [
+      85,
+      255,
+      255
+    ],
+    "yellow_hsv_lower": [
+      20,
+      80,
+      140
+    ],
+    "yellow_hsv_upper": [
+      35,
+      255,
+      255
+    ]
   }
 }

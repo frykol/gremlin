@@ -1,308 +1,393 @@
 <!doctype html>
 <html lang="pl">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Gremlin Control</title>
-    <link rel="stylesheet" href="style.css" />
-  </head>
-  <body>
-    <div class="app-shell">
-      <header class="hero">
-        <div class="hero-copy">
-          <p class="eyebrow">Robot control center</p>
-          <h1>Gremlin Control</h1>
-          <p class="hero-text">Sterowanie robotem, kamerą i systemem audio w jednym, intuicyjnym panelu.</p>
-        </div>
 
-        <div class="hero-actions">
-          <div id="status" class="status status-disconnected">Rozłączony</div>
-          <div class="program-controls">
-            <div id="program-status" class="status status-connecting">Program: ?</div>
-            <button id="program-on" class="secondary">Program ON</button>
-            <button id="program-off">Program OFF</button>
-          </div>
-        </div>
-      </header>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gremlin Control</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
 
-      <section class="panel-card connection-card">
-        <form id="connect-form">
-          <label for="robot-ip">IP robota</label>
-          <div class="connect-row">
-            <input id="robot-ip" name="robot-ip" type="text" placeholder="192.168.1.162" required />
-            <button type="submit">Połącz</button>
-          </div>
-        </form>
-      </section>
-
-      <div class="layout">
-        <nav class="sidebar">
-          <button class="tab-button active" data-tab="control">Control</button>
-          <button class="tab-button" data-tab="camera">Camera</button>
-          <button class="tab-button" data-tab="gpio">GPIO</button>
-          <button class="tab-button" data-tab="encoders">Enkodery</button>
-          <button class="tab-button" data-tab="i2c">I2C</button>
-          <button class="tab-button" data-tab="ads1115">ADS1115</button>
-          <button class="tab-button" data-tab="bands">Opaski</button>
-          <button class="tab-button" data-tab="color-detection">OpenCV Kolor</button>
-          <button class="tab-button" data-tab="mic">Mikrofon</button>
-          <button class="tab-button" data-tab="lidar">Lidar</button>
-          <button class="tab-button" data-tab="log">Log</button>
-          <button class="tab-button" data-tab="config">Config</button>
-        </nav>
-
-        <main>
-          <section id="tab-control" class="tab-panel active">
-            <div class="panel-card">
-              <p class="panel-kicker">Sterowanie</p>
-              <h2>Manewry i moc</h2>
-              <div id="control-status" class="status status-disconnected">NIEAKTYWNY</div>
-              <label for="power-slider">Moc silników (%)</label>
-              <input id="power-slider" type="range" min="0" max="100" value="20" />
-              <div class="control-grid">
-                <button data-direction="Przód">Przód</button>
-                <button data-direction="Lewo">Lewo</button>
-                <button data-direction="Prawo">Prawo</button>
-                <button data-direction="Full lewo">Full lewo</button>
-                <button data-direction="Full prawo">Full prawo</button>
-                <button data-direction="Tył">Tył</button>
-              </div>
-            </div>
-
-            <div class="panel-card">
-              <p class="panel-kicker">Zabawa</p>
-              <h2>Tańce</h2>
-              <div id="dance-status" class="status status-disconnected">BRAK TAŃCA</div>
-              <div class="control-grid dance-grid">
-                <button id="dance-bujanie" data-dance="bujanie">Bujanie</button>
-                <button id="dance-krok" data-dance="krok">Krok w bok</button>
-                <button id="dance-zygzak" data-dance="zygzak">Zygzak</button>
-                <button id="dance-szal" data-dance="szal">Szał</button>
-                <button id="dance-spinjitsu" data-dance="spinjitsu">Spinjitsu</button>
-                <button id="dance-stop" class="dance-stop-button">Stop tańca</button>
-              </div>
-            </div>
-          </section>
-
-          <section id="tab-camera" class="tab-panel">
-            <div class="panel-card camera-card">
-              <p class="panel-kicker">Podgląd</p>
-              <h2>Kamera</h2>
-              <div class="video-frame">
-                <img id="video" alt="Podgląd kamery" />
-                <div id="video-placeholder">Brak obrazu</div>
-              </div>
-              <div class="camera-controls">
-                <button id="camera-start">Start</button>
-                <button id="camera-stop">Stop</button>
-                <button id="camera-rotate">Obróć</button>
-                <button id="camera-capture">Capture</button>
-              </div>
-            </div>
-          </section>
-
-          <section id="tab-gpio" class="tab-panel">
-            <div class="panel-card">
-              <p class="panel-kicker">Peryferia</p>
-              <h2>GPIO</h2>
-              <div class="gpio-controls">
-                <button id="gpio-set-0">0</button>
-                <button id="gpio-set-1">1</button>
-              </div>
-              <div id="gpio-grid" class="gpio-grid"></div>
-            </div>
-          </section>
-
-          <section id="tab-encoders" class="tab-panel">
-            <div class="panel-card">
-              <p class="panel-kicker">Odometria</p>
-              <h2>Enkodery kół</h2>
-              <div id="encoders-grid" class="encoders-grid"></div>
-              <button id="encoders-reset">Wyzeruj liczniki</button>
-            </div>
-          </section>
-
-          <section id="tab-i2c" class="tab-panel">
-            <div class="panel-card">
-              <p class="panel-kicker">Peryferia</p>
-              <h2>I2C</h2>
-              <input id="i2c-slider" type="range" min="0" max="100" value="0" />
-              <div id="i2c-buttons" class="i2c-grid"></div>
-            </div>
-          </section>
-
-          <section id="tab-ads1115" class="tab-panel">
-            <div class="panel-card">
-              <p class="panel-kicker">Peryferia</p>
-              <h2>ADS1115</h2>
-              <div id="ads1115-grid" class="encoders-grid"></div>
-            </div>
-          </section>
-
-          <section id="tab-bands" class="tab-panel">
-            <div class="panel-card">
-              <p class="panel-kicker">AI</p>
-              <h2>Opaski na kostkach</h2>
-              <div id="bands-status" class="bands-status bands-status-no">NIE</div>
-              <div class="encoders-grid">
-                <div class="encoder-card">
-                  <div class="encoder-label">Lewa</div>
-                  <div id="bands-left" class="encoder-value">NIE</div>
-                </div>
-                <div class="encoder-card">
-                  <div class="encoder-label">Prawa</div>
-                  <div id="bands-right" class="encoder-value">NIE</div>
-                </div>
-              </div>
-              <img id="bands-preview" class="bands-preview" alt="Podgląd detekcji opasek" />
-            </div>
-          </section>
-
-          <section id="tab-color-detection" class="tab-panel">
-            <div class="panel-card">
-              <p class="panel-kicker">OpenCV</p>
-              <h2>Wykrywanie koloru niebieskiego</h2>
-              <div id="color-detection-status" class="bands-status bands-status-no">NIE</div>
-              <div class="encoders-grid">
-                <div class="encoder-card">
-                  <div class="encoder-label">Udział niebieskiego</div>
-                  <div id="color-detection-ratio" class="encoder-value">0.0%</div>
-                </div>
-              </div>
-              <img id="color-detection-preview" class="bands-preview" alt="Podgląd wykrywania koloru" />
-            </div>
-          </section>
-
-          <section id="tab-mic" class="tab-panel">
-            <div class="panel-card">
-              <p class="panel-kicker">Audio</p>
-              <h2>Mikrofon</h2>
-              <div class="mic-controls">
-                <button id="mic-start">Start</button>
-                <button id="mic-stop">Stop</button>
-                <label><input id="mic-playback" type="checkbox" checked /> Odsłuch</label>
-              </div>
-              <div id="mic-level" class="mic-level"><div id="mic-level-bar"></div></div>
-              <div id="mic-level-text">0%</div>
-            </div>
-          </section>
-
-          <section id="tab-lidar" class="tab-panel">
-            <div class="panel-card lidar-card">
-              <p class="panel-kicker">Percepcja</p>
-              <h2>Chmura punktów LiDAR</h2>
-              <div class="lidar-frame">
-                <canvas id="lidar-canvas"></canvas>
-                <div id="lidar-point-count" class="lidar-point-count">0 punktów</div>
-              </div>
-              <p class="lidar-hint">Przeciągnij, aby obrócić kamerę. Scroll / uszczypnięcie dwoma palcami, aby przybliżyć/oddalić.</p>
-              <div class="lidar-controls">
-                <button id="lidar-start">Start</button>
-                <button id="lidar-stop">Stop</button>
-                <button id="lidar-zoom-in">Przybliż</button>
-                <button id="lidar-zoom-out">Oddal</button>
-                <button id="lidar-reset-view">Reset widoku</button>
-              </div>
-              <div class="lidar-controls">
-                <button id="lidar-rotate-x">Obróć X 90°</button>
-                <button id="lidar-rotate-y">Obróć Y 90°</button>
-                <button id="lidar-rotate-z">Obróć Z 90°</button>
-                <button id="lidar-reset-rotation">Reset obrotu</button>
-              </div>
-              <div id="lidar-rotation-label" class="lidar-rotation-label">obrót X:0° Y:0° Z:90°</div>
-
-              <div class="ai-nav-card">
-                <p class="panel-kicker">Nawigacja (AI)</p>
-                <h2>Mapa lokalna i najkrótsza ścieżka</h2>
-                <p class="ai-hint">
-                  Lokalna "costmapa" do bieżącego omijania przeszkód — zawsze zakłada, że robot
-                  jest w środku (0,0). Przeszkody rysowane są jako pionowe słupki (czerwona kreska =
-                  od podłogi do wykrytej wysokości przeszkody, pomarańczowa kropka = szczyt),
-                  fioletowa linia = trasa, zielona kropka = robot. To celowo NIE śledzi ruchu
-                  robota — do tego służy sekcja SLAM poniżej.
-                </p>
-                <div class="ai-controls">
-                  <button id="ai-map-start">Start mapowania</button>
-                  <button id="ai-map-stop">Stop mapowania</button>
-                  <button id="ai-map-clear" class="secondary">Wyczyść mapę</button>
-                </div>
-                <div class="ai-target-row">
-                  <label>Wys. min (m)<input id="ai-height-min" type="number" step="0.05" value="0.05" /></label>
-                  <label>Wys. max (m)<input id="ai-height-max" type="number" step="0.05" value="0.6" /></label>
-                </div>
-                <p class="ai-hint">
-                  Zakres wysokości filtruje punkty LiDAR liczone jako przeszkoda (odcina podłogę i
-                  sufit). Dostosuj do rzeczywistego montażu czujnika, jeśli mapa dalej wygląda źle.
-                </p>
-                <div class="ai-target-row">
-                  <label>Cel X (prawo, m)<input id="ai-target-x" type="number" step="0.1" value="0" /></label>
-                  <label>Cel Y (przód, m)<input id="ai-target-y" type="number" step="0.1" value="2" /></label>
-                  <button id="ai-target-set">Ustaw cel</button>
-                </div>
-                <div id="ai-status" class="ai-status">Brak celu</div>
-                <button id="ai-run-path">Jedź trasą</button>
-              </div>
-
-              <div class="ai-nav-card">
-                <p class="panel-kicker">SLAM</p>
-                <h2>Globalna mapa i pozycja robota</h2>
-                <p class="ai-hint">
-                  Prawdziwe (uproszczone do 2D) dopasowanie kolejnych skanów LiDAR do zbudowanej
-                  dotąd mapy (scan-to-map ICP) — robot estymuje własny ruch (x, z, obrót) BEZ
-                  polegania na enkoderach kół. Biała linia = przebyta trasa, biała kropka = bieżąca
-                  estymowana pozycja, chmura kolorowana wg wysokości = zaakumulowana mapa świata.
-                  To nie jest pełny 3D LOAM z ekstrakcją cech i zamykaniem pętli (dryf pozycji w
-                  czasie jest oczekiwany) — to najbliższe realnemu SLAM-owi, co da się rozsądnie
-                  zrobić bez dedykowanego silnika robotyki.
-                </p>
-                <div class="ai-controls">
-                  <button id="slam-start">Start SLAM</button>
-                  <button id="slam-stop">Stop SLAM</button>
-                  <button id="slam-reset" class="secondary">Reset SLAM</button>
-                </div>
-                <div id="slam-status" class="ai-status">SLAM zatrzymany</div>
-              </div>
-            </div>
-          </section>
-
-          <section id="tab-log" class="tab-panel">
-            <div class="panel-card">
-              <p class="panel-kicker">Dziennik</p>
-              <h2>Logi systemu</h2>
-              <button id="log-clear">Wyczyść Logi</button>
-              <pre id="log-content"></pre>
-            </div>
-          </section>
-
-          <section id="tab-config" class="tab-panel">
-            <div class="panel-card">
-              <p class="panel-kicker">Ustawienia</p>
-              <h2>Config</h2>
-              <div id="config-form" class="config-form"></div>
-              <div class="config-actions">
-                <button id="config-save">Zapisz</button>
-                <span id="config-status" class="config-status"></span>
-              </div>
-            </div>
-          </section>
-        </main>
+<body>
+  <div class="app-shell">
+    <header class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Robot control center</p>
+        <h1>Gremlin Control</h1>
+        <p class="hero-text">Sterowanie robotem, kamerą i systemem audio w jednym, intuicyjnym panelu.</p>
       </div>
-    </div>
 
-    <script src="tabs/control.js"></script>
-    <script src="tabs/camera.js"></script>
-    <script src="tabs/gpio.js"></script>
-    <script src="tabs/encoders.js"></script>
-    <script src="tabs/i2c.js"></script>
-    <script src="tabs/ads1115.js"></script>
-    <script src="tabs/bands.js"></script>
-    <script src="tabs/color-detection.js"></script>
-    <script src="tabs/mic.js"></script>
-    <script src="tabs/ai.js"></script>
-    <script src="tabs/slam.js"></script>
-    <script src="tabs/lidar.js"></script>
-    <script src="tabs/log.js"></script>
-    <script src="tabs/config.js"></script>
-    <script src="app.js"></script>
-  </body>
+      <div class="hero-actions">
+        <div id="status" class="status status-disconnected">Rozłączony</div>
+        <div class="program-controls">
+          <div id="program-status" class="status status-connecting">Program: ?</div>
+          <button id="program-on" class="secondary">Program ON</button>
+          <button id="program-off">Program OFF</button>
+        </div>
+      </div>
+    </header>
+
+    <section class="panel-card connection-card">
+      <form id="connect-form">
+        <label for="robot-ip">IP robota</label>
+        <div class="connect-row">
+          <input id="robot-ip" name="robot-ip" type="text" placeholder="192.168.1.162" required />
+          <button type="submit">Połącz</button>
+        </div>
+      </form>
+    </section>
+
+    <div class="layout">
+      <nav class="sidebar">
+        <button class="tab-button active" data-tab="control">Control</button>
+        <button class="tab-button" data-tab="camera">Camera</button>
+        <button class="tab-button" data-tab="gpio">GPIO</button>
+        <button class="tab-button" data-tab="encoders">Enkodery</button>
+        <button class="tab-button" data-tab="i2c">I2C</button>
+        <button class="tab-button" data-tab="ads1115">ADS1115</button>
+        <button class="tab-button" data-tab="bands">Opaski</button>
+        <button class="tab-button" data-tab="color-detection">OpenCV Kolor</button>
+        <button class="tab-button" data-tab="mic">Mikrofon</button>
+        <button class="tab-button" data-tab="voice">Głos</button>
+        <button class="tab-button" data-tab="speaker">Głośnik</button>
+        <button class="tab-button" data-tab="lidar">Lidar</button>
+        <button class="tab-button" data-tab="system-status">System Status</button>
+        <button class="tab-button" data-tab="log">Log</button>
+        <button class="tab-button" data-tab="config">Config</button>
+      </nav>
+
+      <main>
+        <section id="tab-control" class="tab-panel active">
+          <div class="panel-card">
+            <p class="panel-kicker">Sterowanie</p>
+            <h2>Manewry i moc</h2>
+            <div id="control-status" class="status status-disconnected">NIEAKTYWNY</div>
+            <label for="power-slider">Moc silników (%)</label>
+            <input id="power-slider" type="range" min="0" max="100" value="20" />
+            <div class="control-grid">
+              <button data-direction="Przód">Przód</button>
+              <button data-direction="Lewo">Lewo</button>
+              <button data-direction="Prawo">Prawo</button>
+              <button data-direction="Full lewo">Full lewo</button>
+              <button data-direction="Full prawo">Full prawo</button>
+              <button data-direction="Tył">Tył</button>
+            </div>
+          </div>
+
+          <div class="panel-card">
+            <p class="panel-kicker">Pad Bluetooth</p>
+            <h2>Sterowanie gałkami</h2>
+            <div id="gamepad-status" class="status status-disconnected">PAD NIEPODŁĄCZONY</div>
+            <div class="control-mode-toggle">
+              <label><input type="radio" name="control-mode" value="buttons" checked /> Przyciski</label>
+              <label><input type="radio" name="control-mode" value="gamepad" /> Pad</label>
+            </div>
+            <label for="gamepad-deadzone">Martwa strefa gałki</label>
+            <input id="gamepad-deadzone" type="range" min="0" max="50" value="15" />
+          </div>
+
+          <div class="panel-card">
+            <p class="panel-kicker">Zabawa</p>
+            <h2>Tańce</h2>
+            <div id="dance-status" class="status status-disconnected">BRAK TAŃCA</div>
+            <div class="control-grid dance-grid">
+              <button id="dance-bujanie" data-dance="bujanie">Bujanie</button>
+              <button id="dance-krok" data-dance="krok">Krok w bok</button>
+              <button id="dance-zygzak" data-dance="zygzak">Zygzak</button>
+              <button id="dance-szal" data-dance="szal">Szał</button>
+              <button id="dance-spinjitsu" data-dance="spinjitsu">Spinjitsu</button>
+              <button id="dance-stop" class="dance-stop-button">Stop tańca</button>
+            </div>
+          </div>
+        </section>
+
+        <section id="tab-camera" class="tab-panel">
+          <div class="panel-card camera-card">
+            <p class="panel-kicker">Podgląd</p>
+            <h2>Kamera</h2>
+            <div class="video-frame">
+              <img id="video" alt="Podgląd kamery" />
+              <div id="video-placeholder">Brak obrazu</div>
+            </div>
+            <div class="camera-controls">
+              <button id="camera-start">Start</button>
+              <button id="camera-stop">Stop</button>
+              <button id="camera-rotate">Obróć</button>
+              <button id="camera-capture">Capture</button>
+            </div>
+          </div>
+        </section>
+
+        <section id="tab-gpio" class="tab-panel">
+          <div class="panel-card">
+            <p class="panel-kicker">Peryferia</p>
+            <h2>GPIO</h2>
+            <div class="gpio-controls">
+              <button id="gpio-set-0">0</button>
+              <button id="gpio-set-1">1</button>
+            </div>
+            <div id="gpio-grid" class="gpio-grid"></div>
+          </div>
+        </section>
+
+        <section id="tab-encoders" class="tab-panel">
+          <div class="panel-card">
+            <p class="panel-kicker">Odometria</p>
+            <h2>Enkodery kół</h2>
+            <div id="encoders-grid" class="encoders-grid"></div>
+            <button id="encoders-reset">Wyzeruj liczniki</button>
+          </div>
+        </section>
+
+        <section id="tab-i2c" class="tab-panel">
+          <div class="panel-card">
+            <p class="panel-kicker">Peryferia</p>
+            <h2>I2C</h2>
+            <input id="i2c-slider" type="range" min="0" max="100" value="0" />
+            <div id="i2c-buttons" class="i2c-grid"></div>
+          </div>
+        </section>
+
+        <section id="tab-ads1115" class="tab-panel">
+          <div class="panel-card">
+            <p class="panel-kicker">Peryferia</p>
+            <h2>ADS1115</h2>
+            <div id="ads1115-grid" class="encoders-grid"></div>
+          </div>
+        </section>
+
+        <section id="tab-bands" class="tab-panel">
+          <div class="panel-card">
+            <p class="panel-kicker">AI</p>
+            <h2>Opaski na kostkach</h2>
+            <div id="bands-status" class="bands-status bands-status-no">NIE</div>
+            <div class="encoders-grid">
+              <div class="encoder-card">
+                <div class="encoder-label">Lewa</div>
+                <div id="bands-left" class="encoder-value">NIE</div>
+              </div>
+              <div class="encoder-card">
+                <div class="encoder-label">Prawa</div>
+                <div id="bands-right" class="encoder-value">NIE</div>
+              </div>
+            </div>
+            <img id="bands-preview" class="bands-preview" alt="Podgląd detekcji opasek" />
+          </div>
+        </section>
+
+        <section id="tab-color-detection" class="tab-panel">
+          <div class="panel-card">
+            <p class="panel-kicker">OpenCV</p>
+            <h2>Wykrywanie koloru zielonego</h2>
+            <div id="color-detection-status" class="bands-status bands-status-no">NIE</div>
+            <div class="encoders-grid">
+              <div class="encoder-card">
+                <div class="encoder-label">Udział zielonego</div>
+                <div id="color-detection-ratio" class="encoder-value">0.0%</div>
+              </div>
+              <div class="encoder-card">
+                <div class="encoder-label">Skupiska zielonego</div>
+                <div id="color-detection-blob-count" class="encoder-value">0</div>
+              </div>
+              <div class="encoder-card">
+                <div class="encoder-label">Skupiska żółtego</div>
+                <div id="color-detection-yellow-count" class="encoder-value">0</div>
+              </div>
+              <div class="encoder-card">
+                <div class="encoder-label">Zielony na żółtym</div>
+                <div id="color-detection-band-status" class="encoder-value">NIE</div>
+              </div>
+            </div>
+            <label><input id="follow-band-toggle" type="checkbox" /> Podążaj za opaską</label>
+            <img id="color-detection-preview" class="bands-preview" alt="Podgląd wykrywania koloru" />
+          </div>
+        </section>
+
+        <section id="tab-mic" class="tab-panel">
+          <div class="panel-card">
+            <p class="panel-kicker">Audio</p>
+            <h2>Mikrofon</h2>
+            <div class="mic-controls">
+              <button id="mic-start">Start</button>
+              <button id="mic-stop">Stop</button>
+              <label><input id="mic-playback" type="checkbox" checked /> Odsłuch</label>
+            </div>
+            <div id="mic-level" class="mic-level">
+              <div id="mic-level-bar"></div>
+            </div>
+            <div id="mic-level-text">0%</div>
+
+            <h3>Filtr szumu (lidar / silniki)</h3>
+            <p class="mic-filter-hint">Pasma notch tłumią szum mechaniczny, ale nakładają się na pasmo mowy — dostrój je na żywo, słuchając odsłuchu powyżej.</p>
+
+            <div class="mic-filter-band">
+              <label><input id="mic-filter-lidar-enabled" type="checkbox" checked /> Pasmo lidaru</label>
+              <label for="mic-filter-lidar-center">Środek: <span id="mic-filter-lidar-center-value">192.5</span> Hz</label>
+              <input id="mic-filter-lidar-center" type="range" min="50" max="600" step="0.5" value="192.5" />
+              <label for="mic-filter-lidar-width">Szerokość: <span id="mic-filter-lidar-width-value">85</span> Hz</label>
+              <input id="mic-filter-lidar-width" type="range" min="1" max="200" step="1" value="85" />
+            </div>
+
+            <div class="mic-filter-band">
+              <label><input id="mic-filter-motor-enabled" type="checkbox" checked /> Pasmo silników</label>
+              <label for="mic-filter-motor-center">Środek: <span id="mic-filter-motor-center-value">415</span> Hz</label>
+              <input id="mic-filter-motor-center" type="range" min="50" max="1000" step="0.5" value="415" />
+              <label for="mic-filter-motor-width">Szerokość: <span id="mic-filter-motor-width-value">110</span> Hz</label>
+              <input id="mic-filter-motor-width" type="range" min="1" max="300" step="1" value="110" />
+            </div>
+
+            <h3>Adaptacyjna redukcja szumu (profil)</h3>
+            <p class="mic-filter-hint">Notche powyżej łapią tylko wąskie, stałe częstotliwości. Nagraj ~2s samego szumu tła (bez mowy) — reszta widma szumu zostanie wyuczona i wycięta adaptacyjnie.</p>
+            <div class="mic-filter-band">
+              <div class="mic-controls">
+                <button id="mic-calibrate-noise">Nagraj profil szumu (2s)</button>
+                <button id="mic-reset-noise" class="secondary">Resetuj profil</button>
+              </div>
+              <div id="mic-noise-profile-status" class="encoder-value">Brak profilu</div>
+            </div>
+          </div>
+        </section>
+
+        <section id="tab-voice" class="tab-panel">
+          <div class="panel-card">
+            <p class="panel-kicker">AI</p>
+            <h2>Rozpoznawanie mowy (Vosk)</h2>
+            <div class="encoders-grid">
+              <div class="encoder-card">
+                <div class="encoder-label">Ostatnio usłyszane</div>
+                <div id="voice-last-text" class="encoder-value">—</div>
+              </div>
+              <div class="encoder-card">
+                <div class="encoder-label">Ostatnia komenda</div>
+                <div id="voice-last-action" class="encoder-value">—</div>
+              </div>
+            </div>
+            <h3>Historia</h3>
+            <ul id="voice-history" class="voice-history"></ul>
+          </div>
+        </section>
+
+        <section id="tab-speaker" class="tab-panel">
+          <div class="panel-card">
+            <p class="panel-kicker">Audio</p>
+            <h2>Głośnik</h2>
+            <div class="speaker-status">
+              <div id="speaker-status-text" class="status status-disconnected">Gotowy</div>
+            </div>
+            <div class="speaker-controls">
+              <button id="speaker-stop" class="secondary">Stop</button>
+            </div>
+            <h3>Taniec do muzyki</h3>
+            <label for="speaker-dance-select">Taniec</label>
+            <select id="speaker-dance-select"></select>
+            <h3>Dostępne dźwięki</h3>
+            <div id="speaker-sounds-list" class="sounds-grid"></div>
+            <div id="speaker-loading" class="speaker-loading" style="display: none;">
+              Ładowanie dźwięków...
+            </div>
+            <div id="speaker-no-sounds" class="speaker-no-sounds" style="display: none;">
+              Brak dźwięków w folderze sounds/
+            </div>
+          </div>
+        </section>
+
+        <section id="tab-lidar" class="tab-panel">
+          <div class="panel-card lidar-card">
+            <p class="panel-kicker">Percepcja</p>
+            <h2>Chmura punktów LiDAR</h2>
+            <div id="connection-banner" class="lidar-banner" role="status"></div>
+            <div class="lidar-frame">
+              <canvas id="viewer-canvas" aria-label="Wizualizacja chmury punktów LiDAR"></canvas>
+            </div>
+            <div class="lidar-legend" aria-hidden="true">
+              <span class="lidar-legend-label">słabe odbicie</span>
+              <div class="lidar-legend-bar"></div>
+              <span class="lidar-legend-label">silne odbicie</span>
+            </div>
+            <div class="lidar-tilt-control">
+              <label for="lidar-tilt-x-slider">Obrót X (pitch): <span id="lidar-tilt-x-value">0°</span></label>
+              <input id="lidar-tilt-x-slider" type="range" min="-180" max="180" step="1" value="0" />
+              <label for="lidar-tilt-y-slider">Obrót Y (yaw): <span id="lidar-tilt-y-value">0°</span></label>
+              <input id="lidar-tilt-y-slider" type="range" min="-180" max="180" step="1" value="0" />
+              <label for="lidar-tilt-z-slider">Obrót Z (roll): <span id="lidar-tilt-z-value">0°</span></label>
+              <input id="lidar-tilt-z-slider" type="range" min="-180" max="180" step="1" value="0" />
+              <button id="lidar-tilt-reset" type="button">Reset</button>
+            </div>
+            <div class="lidar-readouts">
+              <pre id="metrics-panel">oczekiwanie na metryki</pre>
+              <pre id="imu-panel">oczekiwanie na IMU</pre>
+            </div>
+          </div>
+
+          <div class="panel-card lidar-card">
+            <p class="panel-kicker">Percepcja</p>
+            <h2>Wykryte przeszkody (radar)</h2>
+            <div class="lidar-radar-frame">
+              <canvas id="obstacle-radar-canvas" aria-label="Radar wykrytych przeszkod - widok z gory"></canvas>
+            </div>
+            <pre id="obstacle-summary-panel">oczekiwanie na dane...</pre>
+          </div>
+        </section>
+
+        <section id="tab-system-status" class="tab-panel">
+          <div class="panel-card">
+            <p class="panel-kicker">Diagnostyka</p>
+            <h2>Status urządzeń</h2>
+            <div id="system-status-grid" class="system-status-grid"></div>
+          </div>
+        </section>
+
+        <section id="tab-log" class="tab-panel">
+          <div class="panel-card">
+            <p class="panel-kicker">Dziennik</p>
+            <h2>Logi systemu</h2>
+            <button id="log-clear">Wyczyść Logi</button>
+            <pre id="log-content"></pre>
+          </div>
+        </section>
+
+        <section id="tab-config" class="tab-panel">
+          <div class="panel-card">
+            <p class="panel-kicker">Ustawienia</p>
+            <h2>Config</h2>
+            <div id="config-form" class="config-form"></div>
+            <div class="config-actions">
+              <button id="config-save">Zapisz</button>
+              <span id="config-status" class="config-status"></span>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="tabs/control.js"></script>
+  <script src="tabs/camera.js"></script>
+  <script src="tabs/gpio.js"></script>
+  <script src="tabs/encoders.js"></script>
+  <script src="tabs/i2c.js"></script>
+  <script src="tabs/ads1115.js"></script>
+  <script src="tabs/bands.js"></script>
+  <script src="tabs/color-detection.js"></script>
+  <script src="tabs/mic.js"></script>
+  <script src="tabs/voice.js"></script>
+  <script src="tabs/speaker.js"></script>
+  <script src="tabs/ai.js"></script>
+  <script src="tabs/slam.js"></script>
+  <script src="tabs/lidar.js"></script>
+  <script src="tabs/system-status.js"></script>
+  <script src="tabs/log.js"></script>
+  <script src="tabs/config.js"></script>
+  <script src="lidar/js/vendor/three.min.js"></script>
+  <script src="lidar/js/color.js"></script>
+  <script src="lidar/js/pointcloud.js"></script>
+  <script src="lidar/js/obstacle_overlay.js"></script>
+  <script src="lidar/js/obstacle_radar.js"></script>
+  <script src="lidar/js/viewer.js?v=20260904c"></script>
+  <script src="lidar/js/imu_panel.js"></script>
+  <script src="lidar/js/metrics_panel.js"></script>
+  <script src="lidar/js/ws_client.js"></script>
+  <script src="app.js?v=20260826b"></script>
+</body>
+
 </html>

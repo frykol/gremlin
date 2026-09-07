@@ -6,7 +6,9 @@ import time
 import numpy as np
 from vosk import Model, KaldiRecognizer
 
-from src.robot_state import RobotState
+from src.robot_state import RobotState, VoiceRecognitionState
+
+VOICE_HISTORY_LIMIT = 20
 
 # ─────────────────────────────────────────────
 # KONFIGURACJA KOMEND
@@ -128,6 +130,9 @@ class Voice:
 
         self._logs = logs
 
+        if self.state.voice_recognition_state is None:
+            self.state.voice_recognition_state = VoiceRecognitionState()
+
     async def run(self):
         while True:
             chunk = self.state.last_audio_chunk
@@ -138,16 +143,20 @@ class Voice:
                 data = np.asarray(chunk.samples).astype(np.int16).tobytes()
                 accepted, result_json = await asyncio.to_thread(self._process_chunk, data)
                 if accepted:
+                    self._last_partial = ''
                     result = json.loads(result_json)
                     text = result.get('text', '').strip()
                     if text:
                         self._handle_text(text)
-                # else:
-                #     partial = json.loads(self._recognizer.PartialResult())
-                #     partial_text = partial.get('partial', '').strip()
-                #     if partial_text and partial_text != self._last_partial:
-                #         self._last_partial = partial_text
-                #         print(f'[słucham] "{partial_text}"')
+                else:
+                    # Wynik czesciowy (Vosk jeszcze nie wykryl ciszy konczacej
+                    # wypowiedz). Bez tego krotkie komendy w halasie (silniki,
+                    # lidar) mogly nigdy sie nie sfinalizowac i ginac w calosci
+                    # - patrz VoiceStateRecordingTests w tests/test_voice.py.
+                    partial = json.loads(result_json).get('partial', '').strip()
+                    if partial and partial != self._last_partial:
+                        self._last_partial = partial
+                        self._handle_partial(partial)
             else:
                 # Nie ma jeszcze nowego chunku — nie zajmuj rdzenia w petli.
                 await asyncio.sleep(0.001)
@@ -157,13 +166,15 @@ class Voice:
         asyncio.to_thread, zeby nie zamrazac petli zdarzen (a wiec i innych
         taskow, np. CommandProcessor obslugujacego komendy z Control/I2C)."""
         accepted = self._recognizer.AcceptWaveform(data)
-        return accepted, self._recognizer.Result() if accepted else ''
+        if accepted:
+            return True, self._recognizer.Result()
+        return False, self._recognizer.PartialResult()
 
     def _handle_text(self, text: str):
-        if self._logs: print(f'[słyszę] "{text}"')
         action = match_command(text)
+        self._record_heard(text, action)
+
         if action is None:
-            if self._logs: print('[?] Nie rozpoznano komendy.')
             return
 
         now = time.monotonic()
@@ -172,8 +183,53 @@ class Voice:
         self._last_action = action
         self._last_time = now
 
-        if self._logs: print(LABELS.get(action, action))
         self._apply_action(action)
+
+    def _handle_partial(self, text: str):
+        """Dopasowuje komendy juz na wyniku czesciowym, zamiast czekac na
+        finalizacje (cisza). Nie zapisuje kazdego czesciowego fragmentu do
+        historii w UI (zalewaloby ja narastajacym tekstem typu "w", "w
+        prawo") - tylko last_text na biezaco i historie w momencie realnego
+        dopasowania komendy."""
+        voice_state = self.state.voice_recognition_state
+        voice_state.last_text = text
+        voice_state.last_update = time.time()
+
+        action = match_command(text)
+        if action is None:
+            return
+
+        now = time.monotonic()
+        if action == self._last_action and (now - self._last_time) < DEBOUNCE:
+            return
+        self._last_action = action
+        self._last_time = now
+
+        label = LABELS.get(action, action)
+        voice_state.last_action = label
+        voice_state.history.append({'text': text, 'action': label, 'time': voice_state.last_update})
+        if len(voice_state.history) > VOICE_HISTORY_LIMIT:
+            del voice_state.history[:-VOICE_HISTORY_LIMIT]
+
+        self._apply_action(action)
+
+    def _record_heard(self, text: str, action: str | None):
+        """Zapisuje uslyszany tekst do RobotState (do zakladki Glos w UI)
+        zamiast drukowac na terminal/log."""
+        voice_state = self.state.voice_recognition_state
+        now = time.time()
+
+        voice_state.last_text = text
+        voice_state.last_action = LABELS.get(action, action) if action else None
+        voice_state.last_update = now
+
+        voice_state.history.append({
+            'text': text,
+            'action': voice_state.last_action,
+            'time': now,
+        })
+        if len(voice_state.history) > VOICE_HISTORY_LIMIT:
+            del voice_state.history[:-VOICE_HISTORY_LIMIT]
 
     def _apply_action(self, action: str):
         if action == 'speed_up':
@@ -202,8 +258,6 @@ class Voice:
         elif action == 'spin':
             angular_z = SPIN_ANGULAR * self._speed_scale
         # 'stop' -> zostaja same zera
-
-        if self._logs: print(f'[ruch] linear_x={linear_x:.2f} linear_y={linear_y:.2f} angular_z={angular_z:.2f}')
 
 
 def main(args=None):

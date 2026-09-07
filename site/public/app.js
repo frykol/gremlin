@@ -162,14 +162,24 @@ const tabInitializers = [
   typeof initBandsTab === 'function' ? initBandsTab : null,
   typeof initColorDetectionTab === 'function' ? initColorDetectionTab : null,
   typeof initMicTab === 'function' ? initMicTab : null,
+  typeof initVoiceTab === 'function' ? initVoiceTab : null,
+  typeof initSpeakerTab === 'function' ? initSpeakerTab : null,
   typeof initLidarTab === 'function' ? initLidarTab : null,
+  typeof initSystemStatusTab === 'function' ? initSystemStatusTab : null,
   typeof initLogTab === 'function' ? initLogTab : null,
   typeof initConfigTab === 'function' ? initConfigTab : null,
 ];
 
 for (const init of tabInitializers) {
   if (init) {
-    init(context);
+    try {
+      init(context);
+    } catch (err) {
+      // Jedna wadliwa zakladka nie moze ubijac inicjalizacji reszty -
+      // bez tego np. blad w initSpeakerTab cichutko blokowal Lidar,
+      // Log i Config (byly nizej na liscie).
+      console.error('Blad inicjalizacji zakladki:', err);
+    }
   }
 }
 

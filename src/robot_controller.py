@@ -13,6 +13,7 @@ from src.hardware.respeaker.interface import MicArrayInterface
 from src.hardware.sd_card.interface import SdCardInterface
 from src.hardware.ads1115.interface import ADS1115Interface
 from src.hardware.lidar.interface import LidarInterface
+from src.hardware.speaker.interface import SpeakerInterface
 
 from .robot_state import RobotState
 from .services.command_processor import CommandProcessor
@@ -33,7 +34,7 @@ from .workers.color_detection_worker import ColorDetectionWorker
 
 
 class RobotController:
-    def __init__(self, config: dict, command_queue: asyncio.Queue, gpio: GPIOController, encoder: EncoderController, i2c_pwm: I2CPWMInterface, camera: CameraInterface, mic_array: MicArrayInterface, sd_card: SdCardInterface, ads1115: ADS1115Interface, lidar: LidarInterface, ws: WSClientInterface):
+    def __init__(self, config: dict, command_queue: asyncio.Queue, gpio: GPIOController, encoder: EncoderController, i2c_pwm: I2CPWMInterface, camera: CameraInterface, mic_array: MicArrayInterface, sd_card: SdCardInterface, ads1115: ADS1115Interface, lidar: LidarInterface, speaker: SpeakerInterface, ws: WSClientInterface):
         self.config: dict = config
         self.state: RobotState = RobotState()
         self.sd_card: SdCardInterface = sd_card
@@ -54,6 +55,8 @@ class RobotController:
             state=self.state,
             ws=ws,
             udp_frame_sender=self.udp_frame_sender,
+            speaker=speaker,
+            mic_array=mic_array,
         )
 
         self.camera_worker = CameraWorker(
@@ -66,9 +69,12 @@ class RobotController:
             mic_array=mic_array
         )
 
+        ads1115_config = config.get("ads1115", {})
+
         self.ads1115_worker = ADS1115Worker(
             state=self.state,
-            ads1115=ads1115
+            ads1115=ads1115,
+            shutdown_min_voltage=ads1115_config.get("shutdown_min_voltage", 12),
         )
 
         self.lidar_worker = LidarWorker(
@@ -118,6 +124,8 @@ class RobotController:
         if band_detection_config.get("model_path"):
             pose_estimator_kwargs["model_path"] = band_detection_config["model_path"]
 
+        pose_estimator = MediaPipePoseEstimator(**pose_estimator_kwargs)
+
         band_detector_kwargs = {}
         if band_detection_config.get("hsv_lower"):
             band_detector_kwargs["hsv_lower"] = np.array(band_detection_config["hsv_lower"])
@@ -126,7 +134,7 @@ class RobotController:
 
         self.band_detection_worker = BandDetectionWorker(
             detector=BandDetector(
-                pose_estimator=MediaPipePoseEstimator(**pose_estimator_kwargs),
+                pose_estimator=pose_estimator,
                 roi_half_size=band_detection_config.get("roi_half_size", 15),
                 blue_ratio_threshold=band_detection_config.get("blue_ratio_threshold", 0.15),
                 **band_detector_kwargs,
@@ -144,6 +152,11 @@ class RobotController:
         if color_detection_config.get("hsv_upper"):
             color_detector_kwargs["hsv_upper"] = np.array(color_detection_config["hsv_upper"])
 
+        if color_detection_config.get("yellow_hsv_lower"):
+            color_detector_kwargs["yellow_hsv_lower"] = np.array(color_detection_config["yellow_hsv_lower"])
+        if color_detection_config.get("yellow_hsv_upper"):
+            color_detector_kwargs["yellow_hsv_upper"] = np.array(color_detection_config["yellow_hsv_upper"])
+
         self.color_detection_worker = ColorDetectionWorker(
             state=self.state,
             poll_interval=color_detection_config.get("poll_interval", 0.2),
@@ -151,10 +164,16 @@ class RobotController:
             **color_detector_kwargs,
         )
 
+        motors_config = config.get("motors")
+        motor_pairs = (
+            {role: tuple(pair) for role, pair in motors_config.items()} if motors_config else None
+        )
+
         self.logic = RobotLogic(
             gpio=gpio,
             i2c_pwm=i2c_pwm,
             state=self.state,
+            motor_pairs=motor_pairs,
         )
 
         self.i2c_pwm = i2c_pwm

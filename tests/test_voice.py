@@ -97,5 +97,73 @@ class VoiceNonBlockingTests(unittest.IsolatedAsyncioTestCase):
         self.assertGreaterEqual(voice._recognizer.calls, 1)
 
 
+class VoiceStateRecordingTests(unittest.TestCase):
+    def test_handle_text_records_heard_text_and_matched_action(self):
+        state = RobotState()
+        voice = Voice(state=state, model_path="unused", logs=False)
+
+        voice._handle_text("jedziemy do przodu")
+
+        self.assertEqual(state.voice_recognition_state.last_text, "jedziemy do przodu")
+        self.assertEqual(state.voice_recognition_state.last_action, "▲  DO PRZODU")
+        self.assertEqual(len(state.voice_recognition_state.history), 1)
+
+    def test_handle_text_records_unmatched_text_without_action(self):
+        state = RobotState()
+        voice = Voice(state=state, model_path="unused", logs=False)
+
+        voice._handle_text("coś niezrozumiałego")
+
+        self.assertEqual(state.voice_recognition_state.last_text, "coś niezrozumiałego")
+        self.assertIsNone(state.voice_recognition_state.last_action)
+
+    def test_history_is_capped_at_limit(self):
+        from src.ai.voice import VOICE_HISTORY_LIMIT
+
+        state = RobotState()
+        voice = Voice(state=state, model_path="unused", logs=False)
+
+        for i in range(VOICE_HISTORY_LIMIT + 5):
+            voice._handle_text(f"stop {i}")
+
+        self.assertEqual(len(state.voice_recognition_state.history), VOICE_HISTORY_LIMIT)
+        self.assertEqual(
+            state.voice_recognition_state.history[-1]["text"],
+            f"stop {VOICE_HISTORY_LIMIT + 4}",
+        )
+
+
+class VoicePartialResultTests(unittest.TestCase):
+    def test_handle_partial_matches_command_without_waiting_for_silence(self):
+        """Krotkie komendy w halasie moga nigdy nie sfinalizowac (Vosk czeka
+        na cisze) - partial pozwala zareagowac zanim to nastapi."""
+        state = RobotState()
+        voice = Voice(state=state, model_path="unused", logs=False)
+
+        voice._handle_partial("stój")
+
+        self.assertEqual(state.voice_recognition_state.last_action, "■  STOP")
+        self.assertEqual(len(state.voice_recognition_state.history), 1)
+
+    def test_handle_partial_updates_last_text_without_matched_command(self):
+        state = RobotState()
+        voice = Voice(state=state, model_path="unused", logs=False)
+
+        voice._handle_partial("jed")
+
+        self.assertEqual(state.voice_recognition_state.last_text, "jed")
+        self.assertIsNone(state.voice_recognition_state.last_action)
+        self.assertEqual(len(state.voice_recognition_state.history), 0)
+
+    def test_handle_partial_respects_debounce_like_handle_text(self):
+        state = RobotState()
+        voice = Voice(state=state, model_path="unused", logs=False)
+
+        voice._handle_partial("stop")
+        voice._handle_partial("stop teraz")
+
+        self.assertEqual(len(state.voice_recognition_state.history), 1)
+
+
 if __name__ == "__main__":
     unittest.main()

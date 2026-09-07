@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { pcmBase64ToFloat32, levelFromInt16 } = require('../public/tabs/mic.js');
+const { pcmBase64ToFloat32, levelFromInt16, MAX_SCHEDULE_DRIFT_SECONDS, noiseProfileStatusLabel } = require('../public/tabs/mic.js');
 
 function int16ArrayToBase64(int16) {
   const bytes = new Uint8Array(int16.buffer);
@@ -30,4 +30,34 @@ test('levelFromInt16 returns 0 for silence', () => {
 test('levelFromInt16 returns 100 for full-scale peak', () => {
   const int16 = new Int16Array([0, -32768, 100]);
   assert.equal(levelFromInt16(int16), 100);
+});
+
+test('MAX_SCHEDULE_DRIFT_SECONDS is a small positive bound', () => {
+  // Guards the fix for playback eventually stalling: once scheduled
+  // playback drifts this far ahead of real time (e.g. after the tab was
+  // throttled in the background), the schedule resets instead of bursting
+  // through a growing backlog.
+  assert.ok(MAX_SCHEDULE_DRIFT_SECONDS > 0);
+  assert.ok(MAX_SCHEDULE_DRIFT_SECONDS <= 5);
+});
+
+test('noiseProfileStatusLabel shows calibrating state first', () => {
+  assert.equal(
+    noiseProfileStatusLabel({ is_calibrating: true, has_profile: true }),
+    'Nagrywanie profilu szumu…'
+  );
+});
+
+test('noiseProfileStatusLabel shows profile-set state when not calibrating', () => {
+  assert.equal(
+    noiseProfileStatusLabel({ is_calibrating: false, has_profile: true }),
+    'Profil ustawiony'
+  );
+});
+
+test('noiseProfileStatusLabel shows no-profile state by default', () => {
+  assert.equal(
+    noiseProfileStatusLabel({ is_calibrating: false, has_profile: false }),
+    'Brak profilu'
+  );
 });

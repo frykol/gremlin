@@ -4,6 +4,7 @@ import asyncio
 
 from .config import load_config
 from .hardware.sd_card.factory import create_sd_card
+from .hardware.status_log import clear_status_log
 from . import default
 
 
@@ -14,6 +15,8 @@ async def _run(init_fn, loop_fn, config: dict) -> None:
 
 def main():
     config = load_config("config.json")
+
+    clear_status_log()
 
     sd_card = create_sd_card(config)
     sd_card.start()

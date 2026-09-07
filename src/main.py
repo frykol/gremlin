@@ -4,6 +4,7 @@ import json
 import signal
 import errno
 import asyncio
+from pathlib import Path
 from asyncio import subprocess as asp
 import builtins
 
@@ -131,6 +132,63 @@ async def _start_site(log_file) -> asp.Process | None:
     return proc
 
 
+def _build_lidar_command(config: dict) -> list[str]:
+    lidar_config = config.get("lidar", {})
+    default_bridge = (
+        Path(__file__).resolve().parents[2]
+        / "unilidar_sdk"
+        / "unitree_lidar_sdk"
+        / "bin"
+        / "unilidar_publisher_udp"
+    )
+    bridge_path = config.get("lidar_bridge_path") or (
+        str(default_bridge) if default_bridge.is_file() else "unilidar_publisher_udp"
+    )
+    serial_port = config.get("lidar_serial_port", lidar_config.get("port", "/dev/ttyUSB0"))
+    return [
+        sys.executable,
+        "-m",
+        "backend.lidar.http_api",
+        "--lidar-bridge-path",
+        str(bridge_path),
+        "--lidar-serial-port",
+        str(serial_port),
+        "--port",
+        str(config.get("lidar_ws_port", 8767)),
+    ]
+
+
+async def _start_lidar_service(config: dict, log_file) -> asp.Process | None:
+    try:
+        proc = await asp.create_subprocess_exec(
+            *_build_lidar_command(config),
+            stdout=asp.PIPE,
+            stderr=asp.STDOUT,
+        )
+    except Exception as e:
+        print(f"Failed to start LiDAR service: {e}")
+        return None
+
+    if proc.stdout:
+        asyncio.create_task(_drain_stream_to_log(proc.stdout, log_file))
+    print(f"LiDAR service started (pid={proc.pid})")
+    return proc
+
+
+async def _stop_lidar_service(proc: asp.Process | None):
+    if proc is None or proc.returncode is not None:
+        return
+    try:
+        proc.terminate()
+        try:
+            await asyncio.wait_for(proc.wait(), timeout=5.0)
+        except asyncio.TimeoutError:
+            proc.kill()
+            await proc.wait()
+    except Exception as e:
+        print(f"Error stopping LiDAR service: {e}")
+
+
 async def _stop_site(proc: asp.Process | None):
     if proc is None or proc.returncode is not None:
         return
@@ -156,6 +214,7 @@ async def main():
     ws_task = asyncio.create_task(ws.connect())
 
     log_file = open(SIM_LOG, "a", buffering=1, encoding="utf-8")
+    log_file = _clear_log_file(log_file, SIM_LOG)
 
     # Preserve original print and patch builtins.print to also write to sim.log
     builtins.ORIGINAL_PRINT = builtins.print
@@ -410,8 +469,10 @@ async def main():
                 pass
 
     site_proc = None
+    lidar_proc = None
     if config.get("enable_site", False):
         site_proc = await _start_site(log_file)
+        lidar_proc = await _start_lidar_service(config, log_file)
 
     tasks = [
         asyncio.create_task(process_instructions()),
@@ -437,6 +498,7 @@ async def main():
     finally:
         await stop_program_manager()
         await _stop_site(site_proc)
+        await _stop_lidar_service(lidar_proc)
 
         for t in tasks:
             try:

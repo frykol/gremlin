@@ -7,9 +7,11 @@ const { WebSocketServer } = require('ws');
 function createApp(options = {}) {
   const udpPort = options.udpPort || Number(process.env.UDP_PORT) || 9000;
   const configPath = options.configPath || path.join(__dirname, '..', 'config.json');
+  const soundsDir = options.soundsDir || path.join(__dirname, '..', 'sounds');
 
   const app = express();
   app.use(express.json());
+  app.use('/sounds', express.static(soundsDir));
   app.use(express.static(path.join(__dirname, 'public'), {
     // Skrypty tabow (np. lidar.js/ai.js) zmieniaja sie czesto podczas
     // rozwoju - bez tego przegladarka potrafi trzymac stara wersje w
@@ -44,6 +46,22 @@ function createApp(options = {}) {
     }
 
     res.json(parsed);
+  });
+
+  app.get('/api/sounds', (req, res) => {
+    let entries;
+    try {
+      entries = fs.readdirSync(soundsDir);
+    } catch (e) {
+      res.json({ sounds: [] });
+      return;
+    }
+
+    const sounds = entries
+      .filter((name) => /\.(mp3|wav)$/i.test(name))
+      .sort();
+
+    res.json({ sounds });
   });
 
   app.put('/api/robot-config', (req, res) => {
@@ -152,6 +170,17 @@ if (require.main === module) {
   const app = createApp({ udpPort: UDP_PORT });
   const server = app.listen(PORT, () => {
     console.log(`Control site listening on :${PORT}`);
+  });
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(
+        `Port ${PORT} jest juz zajety - prawdopodobnie stary proces server.js` +
+        ` nadal dziala. Zabij go przed restartem: sudo lsof -i :${PORT} (albo` +
+        ` sudo fuser -k ${PORT}/tcp) i sprobuj ponownie.`
+      );
+      process.exit(1);
+    }
+    throw err;
   });
 
   const { wss } = createVideoRelay(UDP_PORT);

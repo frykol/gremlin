@@ -1,16 +1,25 @@
 import asyncio
+import subprocess
 
 from src.hardware.ads1115.interface import ADS1115Interface
 from src.robot_state import RobotState, ADS1115State
 
 class ADS1115Worker:
-    def __init__(self, ads1115: ADS1115Interface, state: RobotState, poll_interval: float = 0.1):
+    def __init__(
+        self,
+        ads1115: ADS1115Interface,
+        state: RobotState,
+        poll_interval: float = 0.1,
+        shutdown_min_voltage: float | None = 12,
+    ):
         self.ads1115: ADS1115Interface = ads1115
         self.state: RobotState = state
         self.poll_interval: float = poll_interval
+        self.shutdown_min_voltage: float | None = shutdown_min_voltage
 
         self.running: bool = False
         self.task: asyncio.Task | None = None
+        self._shutdown_triggered: bool = False
 
     async def run(self):
         loop = asyncio.get_running_loop()
@@ -29,7 +38,26 @@ class ADS1115Worker:
                     raw_a0=raw_a0, raw_a1=raw_a1, raw_a2=raw_a2, raw_a3=raw_a3,
                 )
 
+                self._check_low_voltage_shutdown(a0)
+
             await asyncio.sleep(self.poll_interval)
+
+    def _check_low_voltage_shutdown(self, a0: float) -> None:
+        if self.shutdown_min_voltage is None or self._shutdown_triggered:
+            return
+
+        if a0 >= self.shutdown_min_voltage:
+            return
+
+        self._shutdown_triggered = True
+        print(
+            f"ADS1115: napiecie A0 ({a0:.2f}V) ponizej progu "
+            f"({self.shutdown_min_voltage:.2f}V) - wylaczam raspberry"
+        )
+        try:
+            subprocess.run(["sudo", "shutdown", "-h", "now"], check=True)
+        except Exception as exc:
+            print(f"ADS1115: nie udalo sie wykonac wylaczenia: {exc}")
 
     def start(self):
         if self.running:

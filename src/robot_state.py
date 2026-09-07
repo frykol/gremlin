@@ -1,7 +1,7 @@
 from collections import deque
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from .hardware.oak_d.interface import CameraFrame
 from .hardware.respeaker.interface import AudioChunk
@@ -83,6 +83,30 @@ class ColorDetectionState:
     blue_ratio: float = 0.0
     last_update: float = 0.0
     debug_frame: str = ""
+    blue_bboxes: List[Tuple[int, int, int, int]] = None
+    yellow_bboxes: List[Tuple[int, int, int, int]] = None
+    target_bbox: Optional[Tuple[int, int, int, int]] = None
+    green_on_yellow_detected: bool = False
+
+    def __post_init__(self):
+        if self.blue_bboxes is None:
+            self.blue_bboxes = []
+        if self.yellow_bboxes is None:
+            self.yellow_bboxes = []
+
+
+@dataclass
+class VoiceRecognitionState:
+    """Ostatnio rozpoznane wypowiedzi z Voice (src/ai/voice.py), do
+    wyswietlenia w zakladce Glos zamiast zasmiecania logow/terminala."""
+    last_text: str = ""
+    last_action: Optional[str] = None
+    last_update: float = 0.0
+    history: List[dict] = None
+
+    def __post_init__(self):
+        if self.history is None:
+            self.history = []
 
 
 @dataclass
@@ -104,4 +128,7 @@ class RobotState:
     encoder_state: EncoderState | None = None
     band_detection_state: BandDetectionState | None = None
     color_detection_state: ColorDetectionState | None = None
+    voice_recognition_state: VoiceRecognitionState | None = None
     robot_pose: RobotPose | None = None
+    follow_band_mode: bool = False
+    follow_band_max_pwm: int = 1200

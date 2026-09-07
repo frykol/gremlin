@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<title>LiDAR Viewer</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="connection-banner" role="status"></div>
+  <div id="panel">
+    <h1>Unitree L1 - podglad na zywo</h1>
+    <canvas id="viewer-canvas"></canvas>
+    <pre id="imu-panel">brak danych IMU</pre>
+    <pre id="metrics-panel">brak danych</pre>
+  </div>
+
+  <script src="js/vendor/three.min.js?v=20260826"></script>
+  <script src="js/color.js?v=20260826"></script>
+  <script src="js/ws_client.js?v=20260826"></script>
+  <script src="js/pointcloud.js?v=20260826"></script>
+  <script src="js/viewer.js?v=20260826"></script>
+  <script src="js/imu_panel.js?v=20260826"></script>
+  <script src="js/metrics_panel.js?v=20260826"></script>
+  <script src="js/main.js?v=20260826"></script>
+</body>
+</html>
