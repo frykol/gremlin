@@ -1,3 +1,5 @@
+import asyncio
+
 from src.hardware.gamepad.dummy_gamepad import FakeGamepad
 from src.hardware.gamepad.factory import _build_dummy, create_gamepad
 from src.hardware.device_slot import DeviceSlot
@@ -34,13 +36,22 @@ def test_create_gamepad_with_is_dummy_flag_returns_dummy_slot_without_monitor():
     assert slot.monitor_task is None
 
 
-def test_create_gamepad_falls_back_to_dummy_when_no_real_device_available():
-    # Brak sekcji "gamepad"/is_dummy=False -> probuje _build_real, ktora na
-    # maszynie bez podlaczonego evdev-gamepada rzuci (RuntimeError z braku
-    # urzadzenia albo ImportError jesli evdev nie jest zainstalowane) -
-    # create_gamepad musi to zlapac i wystawic dzialajacego dummy zamiast
-    # crashowac caly proces.
-    slot = create_gamepad({"gamepad": {"is_dummy": False, "mapping": {}}})
+def test_create_gamepad_falls_back_to_dummy_when_no_real_device_available(monkeypatch):
+    # Wymuszamy brak urzadzenia niezaleznie od tego, czy na maszynie
+    # testowej faktycznie jest podlaczony fizyczny gamepad (na tym
+    # sandboxie bywa) - liczy sie tylko to, ze create_gamepad lapie wyjatek
+    # z _build_real i wystawia dzialajacego dummy zamiast crashowac caly
+    # proces.
+    import src.hardware.gamepad.gamepad as gamepad_module
 
-    assert isinstance(slot, DeviceSlot)
-    assert slot.get().IS_DUMMY is True
+    def _raise():
+        raise RuntimeError("no gamepad in this test")
+
+    monkeypatch.setattr(gamepad_module, "find_gamepad_device", _raise)
+
+    async def scenario():
+        slot = create_gamepad({"gamepad": {"is_dummy": False, "mapping": {}}})
+        assert isinstance(slot, DeviceSlot)
+        assert slot.get().IS_DUMMY is True
+
+    asyncio.run(scenario())

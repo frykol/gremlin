@@ -1,3 +1,5 @@
+import asyncio
+
 from .interface import GamepadInterface
 from .dummy_gamepad import FakeGamepad
 from ..status_log import log_device_status
@@ -18,11 +20,11 @@ def _build_dummy(config: dict) -> GamepadInterface:
     return gamepad
 
 
-def _build_real(config: dict) -> GamepadInterface:
+def _build_real(config: dict, loop: asyncio.AbstractEventLoop) -> GamepadInterface:
     from .gamepad import Gamepad
 
     gamepad_config = config.get("gamepad", {})
-    gamepad = Gamepad(mapping=gamepad_config.get("mapping", {}))
+    gamepad = Gamepad(mapping=gamepad_config.get("mapping", {}), loop=loop)
     gamepad.start()
     return gamepad
 
@@ -38,8 +40,10 @@ def create_gamepad(config: dict) -> DeviceSlot:
         slot.monitor_task = None
         return slot
 
+    loop = asyncio.get_running_loop()
+
     try:
-        instance: GamepadInterface = _build_real(config)
+        instance: GamepadInterface = _build_real(config, loop)
         log_device_status(DEVICE_NAME, "SUCCESS")
     except Exception as e:
         log_device_status(DEVICE_NAME, "ERROR")
@@ -52,7 +56,7 @@ def create_gamepad(config: dict) -> DeviceSlot:
     monitor = DeviceMonitor(
         name=DEVICE_NAME,
         slot=slot,
-        build_real=lambda: _build_real(config),
+        build_real=lambda: _build_real(config, loop),
         build_dummy=lambda: _build_dummy(config),
         poll_interval=poll_interval,
     )

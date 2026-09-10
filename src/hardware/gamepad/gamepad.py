@@ -1,4 +1,5 @@
 import asyncio
+import concurrent.futures
 from typing import Optional
 
 import evdev
@@ -17,25 +18,35 @@ def _resolve_code_name(table: dict, code: int) -> Optional[str]:
 
 def find_gamepad_device() -> "evdev.InputDevice":
     for path in evdev.list_devices():
-        device = evdev.InputDevice(path)
+        try:
+            device = evdev.InputDevice(path)
+        except OSError:
+            continue
+
         caps = device.capabilities()
-        if ecodes.EV_KEY in caps and ecodes.EV_ABS in caps:
+        key_codes = caps.get(ecodes.EV_KEY, [])
+        if ecodes.EV_ABS in caps and ecodes.BTN_GAMEPAD in key_codes:
             return device
+
         device.close()
 
-    raise RuntimeError("Nie znaleziono podlaczonego gamepada (brak urzadzenia EV_KEY+EV_ABS w /dev/input)")
+    raise RuntimeError("Nie znaleziono podlaczonego gamepada (brak urzadzenia z EV_ABS i BTN_GAMEPAD w /dev/input)")
 
 
 class Gamepad(GamepadInterface):
-    def __init__(self, mapping: dict[str, str]):
+    def __init__(self, mapping: dict[str, str], loop: asyncio.AbstractEventLoop):
         self.mapping = mapping
+        self.loop = loop
         self.device: Optional["evdev.InputDevice"] = None
         self._state: GamepadState = neutral_state(mapping)
         self._abs_ranges: dict[str, tuple[int, int]] = {}
-        self._read_task: Optional[asyncio.Task] = None
+        self._read_future: Optional[concurrent.futures.Future] = None
         self._healthy: bool = False
 
     def start(self) -> None:
+        if self.device is not None:
+            return
+
         self.device = find_gamepad_device()
         self._healthy = True
 
@@ -44,13 +55,18 @@ class Gamepad(GamepadInterface):
             if code_name is not None:
                 self._abs_ranges[code_name] = (absinfo.min, absinfo.max)
 
-        self._read_task = asyncio.get_running_loop().create_task(self._read_loop())
+        # Gamepad.start() bywa wolane z watku executor-a (DeviceMonitor
+        # buduje swiezy real driver przez run_in_executor, ktory nie ma
+        # wlasnego running loopa) - run_coroutine_threadsafe, w
+        # przeciwienstwie do loop.create_task, jest bezpieczne do wywolania
+        # z dowolnego watku i planuje coroutine na docelowym loopie.
+        self._read_future = asyncio.run_coroutine_threadsafe(self._read_loop(), self.loop)
         print(f"Gamepad wykryty: {self.device.name} ({self.device.path})")
 
     def stop(self) -> None:
-        if self._read_task is not None:
-            self._read_task.cancel()
-            self._read_task = None
+        if self._read_future is not None:
+            self._read_future.cancel()
+            self._read_future = None
 
         if self.device is not None:
             try:
@@ -73,11 +89,13 @@ class Gamepad(GamepadInterface):
         try:
             async for event in self.device.async_read_loop():
                 self._handle_event(event)
-        except OSError as e:
-            # Pad odlaczony w trakcie dzialania (np. wyjety kabel USB) -
-            # bez tego except petla po prostu by sie ubila, is_healthy()
-            # nigdy by nie zwrocilo False, i DeviceMonitor nigdy by nie
-            # przelaczyl slota na dummy.
+        except Exception as e:
+            # Pad odlaczony w trakcie dzialania (np. wyjety kabel USB) albo
+            # dowolny inny blad odczytu - bez tego except (i bez lapania
+            # WSZYSTKICH wyjatkow, nie tylko OSError) petla po prostu by sie
+            # ubila, is_healthy() nigdy by nie zwrocilo False, i
+            # DeviceMonitor nigdy by nie przelaczyl slota na dummy - pad
+            # wygladalby na podlaczony, ale zamrozony na ostatnim stanie.
             print(f"Gamepad read error (device disconnected?): {e}")
             self._healthy = False
 

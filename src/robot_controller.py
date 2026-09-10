@@ -77,7 +77,7 @@ class RobotController:
         self.gamepad_ws = WsServer(
             host=gamepad_ws_config.get("host", "0.0.0.0"),
             port=gamepad_ws_config.get("port", 8768),
-            instruction_tab=asyncio.Queue(),
+            instruction_tab=asyncio.Queue(maxsize=1),
         )
 
         self.gamepad_worker = GamepadWorker(
@@ -211,6 +211,12 @@ class RobotController:
                 f"lidar_points={lidar_points}"
             )
 
+    async def run_gamepad_ws(self):
+        try:
+            await self.gamepad_ws.connect()
+        except Exception as e:
+            print(f"Gamepad websocket server failed to start: {e}")
+
     async def run(self):
         resolve(self.sd_card_slot).start()
         self.camera_worker.start()
@@ -231,7 +237,7 @@ class RobotController:
             asyncio.create_task(self.logic.run()),
             asyncio.create_task(self.voice.run()),
             asyncio.create_task(self.status_logger()),
-            asyncio.create_task(self.gamepad_ws.connect()),
+            asyncio.create_task(self.run_gamepad_ws()),
         ]
 
         try:
