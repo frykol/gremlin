@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import List, Optional, Tuple
 
+from .hardware.gamepad.interface import GamepadState
 from .hardware.oak_d.interface import CameraFrame
 from .hardware.respeaker.interface import AudioChunk
 
@@ -132,3 +133,4 @@ class RobotState:
     robot_pose: RobotPose | None = None
     follow_band_mode: bool = False
     follow_band_max_pwm: int = 1200
+    gamepad_state: GamepadState | None = None
