@@ -96,6 +96,25 @@
     "stream_channel": 0,
     "is_dummy": true
   },
+  "gamepad": {
+    "is_dummy": true,
+    "mapping": {
+      "BTN_SOUTH": "a",
+      "BTN_EAST": "b",
+      "BTN_WEST": "x",
+      "BTN_NORTH": "y",
+      "BTN_TL": "bumper_l",
+      "BTN_TR": "bumper_r",
+      "BTN_START": "start",
+      "BTN_SELECT": "back",
+      "ABS_X": "left_stick_x",
+      "ABS_Y": "left_stick_y",
+      "ABS_RX": "right_stick_x",
+      "ABS_RY": "right_stick_y",
+      "ABS_Z": "trigger_l",
+      "ABS_RZ": "trigger_r"
+    }
+  },
   "speaker": {
     "alsa_device": "plughw:CARD=sndrpihifiberry,DEV=0",
     "is_dummy": false
@@ -107,6 +126,10 @@
   "ws_server": {
     "host": "192.168.1.215",
     "port": 8765
+  },
+  "gamepad_ws_server": {
+    "host": "0.0.0.0",
+    "port": 8768
   },
   "automatic_disconnect": false,
   "disconnect_timeout": 2,

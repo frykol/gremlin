@@ -14,6 +14,7 @@ from src.hardware.sd_card.interface import SdCardInterface
 from src.hardware.ads1115.interface import ADS1115Interface
 from src.hardware.lidar.interface import LidarInterface
 from src.hardware.speaker.interface import SpeakerInterface
+from src.hardware.device_slot import DeviceSlot, resolve
 
 from .robot_state import RobotState
 from .services.command_processor import CommandProcessor
@@ -31,13 +32,15 @@ from .workers.band_detection_worker import BandDetectionWorker
 from .hardware.band_detection.detector import BandDetector
 from .hardware.band_detection.mediapipe_pose_estimator import MediaPipePoseEstimator
 from .workers.color_detection_worker import ColorDetectionWorker
+from .workers.gamepad_worker import GamepadWorker
+from .dev_connection.ws_server import WsServer
 
 
 class RobotController:
-    def __init__(self, config: dict, command_queue: asyncio.Queue, gpio: GPIOController, encoder: EncoderController, i2c_pwm: I2CPWMInterface, camera: CameraInterface, mic_array: MicArrayInterface, sd_card: SdCardInterface, ads1115: ADS1115Interface, lidar: LidarInterface, speaker: SpeakerInterface, ws: WSClientInterface):
+    def __init__(self, config: dict, command_queue: asyncio.Queue, gpio: GPIOController, encoder: EncoderController, i2c_pwm: DeviceSlot, camera: DeviceSlot, mic_array: DeviceSlot, sd_card: DeviceSlot, ads1115: DeviceSlot, lidar: DeviceSlot, speaker: DeviceSlot, gamepad: DeviceSlot, ws: WSClientInterface):
         self.config: dict = config
         self.state: RobotState = RobotState()
-        self.sd_card: SdCardInterface = sd_card
+        self.sd_card_slot: DeviceSlot = sd_card
 
         camera_stream_config = config.get("camera_stream", {})
 
@@ -67,6 +70,20 @@ class RobotController:
         self.mic_worker = MicWorker(
             state=self.state,
             mic_array=mic_array
+        )
+
+        gamepad_ws_config = config.get("gamepad_ws_server", {})
+
+        self.gamepad_ws = WsServer(
+            host=gamepad_ws_config.get("host", "0.0.0.0"),
+            port=gamepad_ws_config.get("port", 8768),
+            instruction_tab=asyncio.Queue(),
+        )
+
+        self.gamepad_worker = GamepadWorker(
+            state=self.state,
+            gamepad=gamepad,
+            gamepad_ws=self.gamepad_ws,
         )
 
         ads1115_config = config.get("ads1115", {})
@@ -176,7 +193,7 @@ class RobotController:
             motor_pairs=motor_pairs,
         )
 
-        self.i2c_pwm = i2c_pwm
+        self.i2c_pwm_slot: DeviceSlot = i2c_pwm
         self.status_log_interval = config.get("status_log_interval", 10)
 
     async def status_logger(self):
@@ -195,7 +212,7 @@ class RobotController:
             )
 
     async def run(self):
-        self.sd_card.start()
+        resolve(self.sd_card_slot).start()
         self.camera_worker.start()
         self.mic_worker.start()
         self.ads1115_worker.start()
@@ -204,6 +221,7 @@ class RobotController:
         self.encoder_worker.start()
         self.band_detection_worker.start()
         self.color_detection_worker.start()
+        self.gamepad_worker.start()
 
         tasks = [
             asyncio.create_task(self.command_processor.run()),
@@ -213,6 +231,7 @@ class RobotController:
             asyncio.create_task(self.logic.run()),
             asyncio.create_task(self.voice.run()),
             asyncio.create_task(self.status_logger()),
+            asyncio.create_task(self.gamepad_ws.connect()),
         ]
 
         try:
@@ -223,7 +242,7 @@ class RobotController:
                 task.cancel()
 
             for i in range(4):
-                self.i2c_pwm.set_pwm(i, 0, 0)
+                resolve(self.i2c_pwm_slot).set_pwm(i, 0, 0)
 
             await self.camera_worker.stop()
             await self.mic_worker.stop()
@@ -233,5 +252,7 @@ class RobotController:
             await self.encoder_worker.stop()
             await self.band_detection_worker.stop()
             await self.color_detection_worker.stop()
+            await self.gamepad_worker.stop()
+            await self.gamepad_ws.close()
             self.udp_frame_sender.close()
-            self.sd_card.stop()
+            resolve(self.sd_card_slot).stop()

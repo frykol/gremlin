@@ -9,6 +9,7 @@ from .hardware.sd_card.factory import create_sd_card
 from .hardware.ads1115.factory import create_ads1115
 from .hardware.lidar.factory import create_lidar
 from .hardware.speaker.factory import create_speaker
+from .hardware.gamepad.factory import create_gamepad
 from .dev_connection.client_factory import create_client
 from .dev_connection.client import WSClientInterface
 from .robot_controller import RobotController
@@ -32,13 +33,14 @@ async def init(config: dict) -> None:
     asyncio.create_task(ws.connect())
     await asyncio.sleep(1)
 
-    oak_d_camera = create_camera(config)
+    camera_slot = create_camera(config)
 
-    mic_array = create_mic_array(config)
-    sd_card = create_sd_card(config)
-    ads1115 = create_ads1115(config)
-    lidar = create_lidar(config)
-    speaker = create_speaker(config)
+    mic_array_slot = create_mic_array(config)
+    sd_card_slot = create_sd_card(config)
+    ads1115_slot = create_ads1115(config)
+    lidar_slot = create_lidar(config)
+    speaker_slot = create_speaker(config)
+    gamepad_slot = create_gamepad(config)
 
     gpio_c = GPIOController()
     gpio_c.setup()
@@ -50,21 +52,21 @@ async def init(config: dict) -> None:
     )
     encoder_c.setup()
 
-    i2c_p = create_i2c_pwm(config)
-    i2c_p.start()
+    i2c_pwm_slot = create_i2c_pwm(config)
 
     _robot = RobotController(
         config=config,
         command_queue=r_tab,
         gpio=gpio_c,
         encoder=encoder_c,
-        i2c_pwm=i2c_p,
-        camera=oak_d_camera,
-        mic_array=mic_array,
-        sd_card=sd_card,
-        ads1115=ads1115,
-        lidar=lidar,
-        speaker=speaker,
+        i2c_pwm=i2c_pwm_slot,
+        camera=camera_slot,
+        mic_array=mic_array_slot,
+        sd_card=sd_card_slot,
+        ads1115=ads1115_slot,
+        lidar=lidar_slot,
+        speaker=speaker_slot,
+        gamepad=gamepad_slot,
         ws=ws
     )
 
