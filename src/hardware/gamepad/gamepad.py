@@ -44,7 +44,7 @@ class Gamepad(GamepadInterface):
             if code_name is not None:
                 self._abs_ranges[code_name] = (absinfo.min, absinfo.max)
 
-        self._read_task = asyncio.get_event_loop().create_task(self._read_loop())
+        self._read_task = asyncio.get_running_loop().create_task(self._read_loop())
         print(f"Gamepad wykryty: {self.device.name} ({self.device.path})")
 
     def stop(self) -> None:
