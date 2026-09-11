@@ -173,6 +173,101 @@ def test_gamepad_worker_ignores_gamepad_when_follow_band_mode_active():
     asyncio.run(scenario())
 
 
+def test_gamepad_worker_bumper_r_raises_speed_limit_up_to_cap():
+    async def scenario():
+        # bumper_r wcisniety w kolejnych stanach - kazde nowe wcisniecie
+        # (edge False->True) ma podniesc limit o step, ale nie ponad cap.
+        states = [
+            GamepadState(buttons={"bumper_r": False}, axes={}),
+            GamepadState(buttons={"bumper_r": True}, axes={}),
+            GamepadState(buttons={"bumper_r": False}, axes={}),
+            GamepadState(buttons={"bumper_r": True}, axes={}),
+        ]
+        gamepad = ScriptedGamepad(states)
+        i2c_pwm = RecordingI2cPwm()
+        state = RobotState()
+        worker = GamepadWorker(
+            gamepad=gamepad,
+            state=state,
+            gamepad_ws=RecordingWs(),
+            i2c_pwm=i2c_pwm,
+            motor_pairs=MOTOR_PAIRS,
+            drive_max_pwm=1900,
+            drive_max_pwm_cap=2000,
+            drive_max_pwm_step=100,
+            poll_interval=0.001,
+        )
+
+        await _run_worker_briefly(worker, duration=0.08)
+
+        # 1900 -> +100 (pierwsze wcisniecie) -> 2000 -> +100 (drugie
+        # wcisniecie) ale przycieta do cap=2000, nie 2100.
+        assert worker.current_max_pwm == 2000
+
+    asyncio.run(scenario())
+
+
+def test_gamepad_worker_bumper_l_lowers_speed_limit_down_to_zero():
+    async def scenario():
+        states = [
+            GamepadState(buttons={"bumper_l": False}, axes={}),
+            GamepadState(buttons={"bumper_l": True}, axes={}),
+        ]
+        gamepad = ScriptedGamepad(states)
+        i2c_pwm = RecordingI2cPwm()
+        state = RobotState()
+        worker = GamepadWorker(
+            gamepad=gamepad,
+            state=state,
+            gamepad_ws=RecordingWs(),
+            i2c_pwm=i2c_pwm,
+            motor_pairs=MOTOR_PAIRS,
+            drive_max_pwm=50,
+            drive_max_pwm_step=100,
+            poll_interval=0.001,
+        )
+
+        await _run_worker_briefly(worker)
+
+        assert worker.current_max_pwm == 0
+
+    asyncio.run(scenario())
+
+
+def test_gamepad_worker_trigger_l_boosts_speed_without_exceeding_cap():
+    async def scenario():
+        states = [
+            GamepadState(buttons={"trigger_l": False}, axes={"left_stick_y": -1.0}),
+            GamepadState(buttons={"trigger_l": True}, axes={"left_stick_y": -1.0}),
+        ]
+        gamepad = ScriptedGamepad(states)
+        i2c_pwm = RecordingI2cPwm()
+        state = RobotState()
+        worker = GamepadWorker(
+            gamepad=gamepad,
+            state=state,
+            gamepad_ws=RecordingWs(),
+            i2c_pwm=i2c_pwm,
+            motor_pairs=MOTOR_PAIRS,
+            drive_max_pwm=1900,
+            drive_max_pwm_cap=2000,
+            drive_boost_pwm=150,
+            poll_interval=0.001,
+        )
+
+        await _run_worker_briefly(worker, duration=0.05)
+
+        # Boost (1900+150=2050) musi zostac przyciety do cap=2000, a nie
+        # trwale podniesc current_max_pwm ponad wartosc bazowa.
+        expected = compute_drive_pwm(1.0, 0.0, 2000, MOTOR_PAIRS)
+        driven = dict(i2c_pwm.calls)
+        for channel, pwm in expected.items():
+            assert driven[channel] == pwm
+        assert worker.current_max_pwm == 1900
+
+    asyncio.run(scenario())
+
+
 def test_gamepad_worker_skips_driving_when_no_i2c_pwm_configured():
     async def scenario():
         # Bez i2c_pwm/motor_pairs (domyslne None) worker musi dzialac tak

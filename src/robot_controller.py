@@ -72,7 +72,13 @@ class RobotController:
             mic_array=mic_array
         )
 
+        motors_config = config.get("motors")
+        motor_pairs = (
+            {role: tuple(pair) for role, pair in motors_config.items()} if motors_config else None
+        )
+
         gamepad_ws_config = config.get("gamepad_ws_server", {})
+        gamepad_config = config.get("gamepad", {})
 
         self.gamepad_ws = WsServer(
             host=gamepad_ws_config.get("host", "0.0.0.0"),
@@ -84,6 +90,17 @@ class RobotController:
             state=self.state,
             gamepad=gamepad,
             gamepad_ws=self.gamepad_ws,
+            i2c_pwm=i2c_pwm,
+            motor_pairs=motor_pairs,
+            drive_max_pwm=gamepad_config.get("drive_max_pwm", 1500),
+            drive_max_pwm_cap=gamepad_config.get("drive_max_pwm_cap", 2000),
+            drive_max_pwm_step=gamepad_config.get("drive_max_pwm_step", 100),
+            drive_boost_pwm=gamepad_config.get("drive_boost_pwm", 150),
+            drive_forward_axis=gamepad_config.get("drive_forward_axis", "left_stick_y"),
+            drive_turn_axis=gamepad_config.get("drive_turn_axis", "right_stick_x"),
+            drive_speed_down_button=gamepad_config.get("drive_speed_down_button", "bumper_l"),
+            drive_speed_up_button=gamepad_config.get("drive_speed_up_button", "bumper_r"),
+            drive_boost_button=gamepad_config.get("drive_boost_button", "trigger_l"),
         )
 
         ads1115_config = config.get("ads1115", {})
@@ -179,11 +196,6 @@ class RobotController:
             poll_interval=color_detection_config.get("poll_interval", 0.2),
             blue_ratio_threshold=color_detection_config.get("blue_ratio_threshold", 0.15),
             **color_detector_kwargs,
-        )
-
-        motors_config = config.get("motors")
-        motor_pairs = (
-            {role: tuple(pair) for role, pair in motors_config.items()} if motors_config else None
         )
 
         self.logic = RobotLogic(

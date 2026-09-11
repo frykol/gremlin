@@ -114,6 +114,13 @@ class Gamepad(GamepadInterface):
             # wygladalby na podlaczony, ale zamrozony na ostatnim stanie.
             print(f"Gamepad read error (device disconnected?): {e}")
             self._healthy = False
+            # Resetujemy stan do neutralnego OD RAZU, nie czekajac na
+            # DeviceMonitor (ktory sprawdza is_healthy() dopiero co kilka
+            # sekund) - inaczej get_state() zwracalaby zamrozone, ostatnie
+            # wartosci osi (np. "pelny gaz do przodu") jeszcze przez caly ten
+            # czas, a GamepadWorker napedzalby silniki tym zamrozonym stanem
+            # zamiast je zatrzymac natychmiast po odlaczeniu pada.
+            self._state = neutral_state(self.mapping)
 
     def _handle_event(self, event) -> None:
         if event.type == ecodes.EV_KEY:

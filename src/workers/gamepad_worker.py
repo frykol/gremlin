@@ -16,8 +16,14 @@ class GamepadWorker:
         i2c_pwm=None,
         motor_pairs: dict | None = None,
         drive_max_pwm: int = 1500,
+        drive_max_pwm_cap: int = 2000,
+        drive_max_pwm_step: int = 100,
+        drive_boost_pwm: int = 150,
         drive_forward_axis: str = "left_stick_y",
         drive_turn_axis: str = "right_stick_x",
+        drive_speed_down_button: str = "bumper_l",
+        drive_speed_up_button: str = "bumper_r",
+        drive_boost_button: str = "trigger_l",
         poll_interval: float = 0.005,
     ):
         self.gamepad = gamepad
@@ -25,18 +31,42 @@ class GamepadWorker:
         self.gamepad_ws = gamepad_ws
         self.i2c_pwm = i2c_pwm
         self.motor_pairs = motor_pairs
-        self.drive_max_pwm = drive_max_pwm
+        self.drive_max_pwm_cap = drive_max_pwm_cap
+        self.drive_max_pwm_step = drive_max_pwm_step
+        self.drive_boost_pwm = drive_boost_pwm
         self.drive_forward_axis = drive_forward_axis
         self.drive_turn_axis = drive_turn_axis
+        self.drive_speed_down_button = drive_speed_down_button
+        self.drive_speed_up_button = drive_speed_up_button
+        self.drive_boost_button = drive_boost_button
         self.poll_interval: float = poll_interval
+
+        # Aktualny limit PWM, regulowany w locie przyciskami LB/RB (+-
+        # drive_max_pwm_step, w widelkach [0, drive_max_pwm_cap]) - startuje
+        # od wartosci z configu.
+        self.current_max_pwm: int = max(0, min(drive_max_pwm, drive_max_pwm_cap))
+        self._prev_buttons: dict[str, bool] = {}
 
         self.running: bool = False
         self.task: asyncio.Task | None = None
         self._last_sent: GamepadState | None = None
 
+    def _update_speed_limit(self, buttons: dict) -> None:
+        speed_down = buttons.get(self.drive_speed_down_button, False)
+        if speed_down and not self._prev_buttons.get(self.drive_speed_down_button, False):
+            self.current_max_pwm = max(0, self.current_max_pwm - self.drive_max_pwm_step)
+
+        speed_up = buttons.get(self.drive_speed_up_button, False)
+        if speed_up and not self._prev_buttons.get(self.drive_speed_up_button, False):
+            self.current_max_pwm = min(self.drive_max_pwm_cap, self.current_max_pwm + self.drive_max_pwm_step)
+
+        self._prev_buttons = dict(buttons)
+
     def _drive(self, current: GamepadState) -> None:
         if self.i2c_pwm is None or self.motor_pairs is None:
             return
+
+        self._update_speed_limit(current.buttons)
 
         if self.state.follow_band_mode:
             # tryb podazania steruje silnikami sam - ignorujemy gamepada,
@@ -50,7 +80,13 @@ class GamepadWorker:
         vy = -current.axes.get(self.drive_forward_axis, 0.0)
         omega = current.axes.get(self.drive_turn_axis, 0.0)
 
-        channel_values = compute_drive_pwm(vy, omega, self.drive_max_pwm, self.motor_pairs)
+        max_pwm = self.current_max_pwm
+        if current.buttons.get(self.drive_boost_button, False):
+            # Chwilowy boost trzymany tylko podczas wcisniecia - nie zmienia
+            # current_max_pwm na stale, tylko podbija limit na ten jeden tick.
+            max_pwm = min(self.drive_max_pwm_cap, max_pwm + self.drive_boost_pwm)
+
+        channel_values = compute_drive_pwm(vy, omega, max_pwm, self.motor_pairs)
         i2c_pwm = resolve(self.i2c_pwm)
         for channel, pwm in channel_values.items():
             i2c_pwm.set_pwm(channel, 0, pwm)

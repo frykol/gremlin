@@ -112,11 +112,19 @@
       "ABS_RX": "right_stick_x",
       "ABS_RY": "right_stick_y",
       "ABS_Z": "right_stick_x",
-      "ABS_RZ": "right_stick_y"
+      "ABS_RZ": "right_stick_y",
+      "BTN_TL2": "trigger_l",
+      "BTN_TR2": "trigger_r"
     },
     "drive_max_pwm": 400,
+    "drive_max_pwm_cap": 2000,
+    "drive_max_pwm_step": 100,
+    "drive_boost_pwm": 150,
     "drive_forward_axis": "left_stick_y",
-    "drive_turn_axis": "right_stick_x"
+    "drive_turn_axis": "right_stick_x",
+    "drive_speed_down_button": "bumper_l",
+    "drive_speed_up_button": "bumper_r",
+    "drive_boost_button": "trigger_l"
   },
   "speaker": {
     "alsa_device": "plughw:CARD=sndrpihifiberry,DEV=0",
@@ -147,7 +155,7 @@
       "min_volts": 10,
       "max_volts": 16
     },
-    "shutdown_min_voltage": 12
+    "shutdown_min_voltage": 1
   },
   "i2c_pwm": {
     "is_dummy": false
