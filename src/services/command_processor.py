@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import base64
 import json
 import os
@@ -9,6 +11,7 @@ from ..hardware.gpio.encoder_controller import EncoderController
 from ..hardware.i2c.interface import I2CPWMInterface
 from ..hardware.speaker.interface import SpeakerInterface
 from ..hardware.respeaker.interface import AudioFilterConfig, MicArrayInterface, NoiseProfileStatus
+from ..hardware.device_slot import resolve
 from ..robot_state import RobotState
 from ..dev_connection.interface import WSClientInterface
 
@@ -48,12 +51,12 @@ class CommandProcessor:
         self.command_queue: asyncio.Queue = command_queue
         self.gpio: GPIOController = gpio
         self.encoder: EncoderController = encoder
-        self.i2c_pwm: I2CPWMInterface = i2c_pwm
+        self.i2c_pwm = i2c_pwm
         self.state: RobotState = state
         self.ws: WSClientInterface = ws
         self.udp_frame_sender = udp_frame_sender
-        self.speaker: SpeakerInterface = speaker
-        self.mic_array: MicArrayInterface | None = mic_array
+        self.speaker = speaker
+        self.mic_array = mic_array
         self.wheel_channel_state: dict[int, int] = {}
 
     async def run(self):
@@ -106,7 +109,7 @@ class CommandProcessor:
                 # reczne komendy, zeby nie kolidowaly z autonomiczna jazda
                 pass
             else:
-                self.i2c_pwm.set_pwm(cmd["channel"], 0, cmd["pwm"])
+                resolve(self.i2c_pwm).set_pwm(cmd["channel"], 0, cmd["pwm"])
                 self.wheel_channel_state[cmd["channel"]] = cmd["pwm"]
 
         elif cmd.get("type") == "set_follow_band_mode":
@@ -161,29 +164,52 @@ class CommandProcessor:
 
         elif cmd.get("type") == "start_noise_profile_calibration":
             if self.mic_array is not None:
-                self.mic_array.start_noise_profile_calibration()
+                resolve(self.mic_array).start_noise_profile_calibration()
             await self._send_noise_profile_status()
 
         elif cmd.get("type") == "stop_noise_profile_calibration":
             if self.mic_array is not None:
-                self.mic_array.stop_noise_profile_calibration()
+                resolve(self.mic_array).stop_noise_profile_calibration()
             await self._send_noise_profile_status()
 
         elif cmd.get("type") == "reset_noise_profile":
             if self.mic_array is not None:
-                self.mic_array.reset_noise_profile()
+                resolve(self.mic_array).reset_noise_profile()
             await self._send_noise_profile_status()
 
         elif cmd.get("type") == "play_sound":
             file_path = cmd.get("file")
+            volume = cmd.get("volume", 1.0)
+            audio_b64 = cmd.get("audio_b64")
+            if audio_b64:
+                import base64
+                import tempfile
+                from pathlib import Path
+                try:
+                    raw = base64.b64decode(audio_b64, validate=False)
+                except Exception as exc:
+                    print(f"play_sound: zly audio_b64: {exc}")
+                    return
+                if not raw:
+                    print("play_sound: pusty audio_b64")
+                    return
+                suffix = Path(str(file_path or "upload.mp3")).suffix or ".mp3"
+                if suffix.lower() not in (".mp3", ".wav", ".ogg", ".m4a"):
+                    suffix = ".mp3"
+                tmp = Path(tempfile.gettempdir()) / f"rpilot_upload{suffix}"
+                try:
+                    tmp.write_bytes(raw)
+                except OSError as exc:
+                    print(f"play_sound: nie zapisano uploadu: {exc}")
+                    return
+                file_path = str(tmp)
             if file_path:
-                volume = cmd.get("volume", 1.0)
-                self.speaker.play(file_path, volume=volume)
+                resolve(self.speaker).play(file_path, volume=volume)
             else:
                 print("play_sound command missing 'file' parameter")
 
         elif cmd.get("type") == "stop_sound":
-            self.speaker.stop()
+            resolve(self.speaker).stop()
 
     async def _send_lidar_points(self) -> None:
         buffer = self.state.lidar_point_buffer
@@ -280,7 +306,7 @@ class CommandProcessor:
         }))
 
     async def _send_audio_filter_config(self) -> None:
-        config = self.mic_array.get_filter_config() if self.mic_array is not None else AudioFilterConfig()
+        config = resolve(self.mic_array).get_filter_config() if self.mic_array is not None else AudioFilterConfig()
 
         await self.ws.send(json.dumps({
             "type": "audio_filter_config",
@@ -296,19 +322,20 @@ class CommandProcessor:
         if self.mic_array is None:
             return
 
-        current = self.mic_array.get_filter_config()
+        mic_array = resolve(self.mic_array)
+        current_config = mic_array.get_filter_config()
         updated = AudioFilterConfig(
-            lidar_center_hz=cmd.get("lidar_center_hz", current.lidar_center_hz),
-            lidar_width_hz=cmd.get("lidar_width_hz", current.lidar_width_hz),
-            lidar_enabled=cmd.get("lidar_enabled", current.lidar_enabled),
-            motor_center_hz=cmd.get("motor_center_hz", current.motor_center_hz),
-            motor_width_hz=cmd.get("motor_width_hz", current.motor_width_hz),
-            motor_enabled=cmd.get("motor_enabled", current.motor_enabled),
+            lidar_center_hz=cmd.get("lidar_center_hz", current_config.lidar_center_hz),
+            lidar_width_hz=cmd.get("lidar_width_hz", current_config.lidar_width_hz),
+            lidar_enabled=cmd.get("lidar_enabled", current_config.lidar_enabled),
+            motor_center_hz=cmd.get("motor_center_hz", current_config.motor_center_hz),
+            motor_width_hz=cmd.get("motor_width_hz", current_config.motor_width_hz),
+            motor_enabled=cmd.get("motor_enabled", current_config.motor_enabled),
         )
-        self.mic_array.update_filter_config(updated)
+        mic_array.update_filter_config(updated)
 
     async def _send_noise_profile_status(self) -> None:
-        status = self.mic_array.get_noise_profile_status() if self.mic_array is not None else NoiseProfileStatus()
+        status = resolve(self.mic_array).get_noise_profile_status() if self.mic_array is not None else NoiseProfileStatus()
 
         await self.ws.send(json.dumps({
             "type": "noise_profile_status",
