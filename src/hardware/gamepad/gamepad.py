@@ -6,14 +6,29 @@ import evdev
 from evdev import ecodes
 
 from .interface import GamepadInterface, GamepadState
-from .mapping import is_button_code, is_axis_code, neutral_state, normalize_axis_value
+from .mapping import neutral_state, normalize_axis_value
 
 
-def _resolve_code_name(table: dict, code: int) -> Optional[str]:
-    name = table.get(code)
-    if isinstance(name, list):
-        return name[0] if name else None
-    return name
+def _resolve_mapped_name(table: dict, code: int, mapping: dict[str, str]) -> Optional[str]:
+    """Evdev raportuje ten sam kod fizycznego przycisku pod kilkoma aliasami
+    naraz (np. kod 304 to jednoczesnie BTN_A, BTN_GAMEPAD i BTN_SOUTH) - ktora
+    nazwa jest pierwsza na liscie zalezy od konkretnego pada. Sprawdzamy
+    WSZYSTKIE aliasy przeciwko config.json, zamiast zawsze brac pierwszy -
+    inaczej przycisk pod aliasem spoza pierwszej pozycji byłby cicho gubiony
+    (np. SHANWAN Android Gamepad zglasza BTN_A/BTN_B jako pierwsze aliasy dla
+    przyciskow A/B, wiec mapowanie oparte tylko na BTN_SOUTH/BTN_EAST nigdy by
+    ich nie zlapalo)."""
+    aliases = table.get(code)
+    if aliases is None:
+        return None
+    if isinstance(aliases, str):
+        aliases = (aliases,)
+
+    for alias in aliases:
+        if alias in mapping:
+            return mapping[alias]
+
+    return None
 
 
 def find_gamepad_device() -> "evdev.InputDevice":
@@ -39,7 +54,7 @@ class Gamepad(GamepadInterface):
         self.loop = loop
         self.device: Optional["evdev.InputDevice"] = None
         self._state: GamepadState = neutral_state(mapping)
-        self._abs_ranges: dict[str, tuple[int, int]] = {}
+        self._abs_ranges: dict[int, tuple[int, int]] = {}
         self._read_future: Optional[concurrent.futures.Future] = None
         self._healthy: bool = False
 
@@ -51,9 +66,10 @@ class Gamepad(GamepadInterface):
         self._healthy = True
 
         for code, absinfo in self.device.capabilities().get(ecodes.EV_ABS, []):
-            code_name = _resolve_code_name(ecodes.bytype[ecodes.EV_ABS], code)
-            if code_name is not None:
-                self._abs_ranges[code_name] = (absinfo.min, absinfo.max)
+            # Kluczujemy po surowym kodzie evdev (int), nie po nazwie - nazwa
+            # zalezy od tego, ktory alias akurat zwroci _resolve_mapped_name,
+            # a zakres musi byc jednoznaczny niezaleznie od tego wyboru.
+            self._abs_ranges[code] = (absinfo.min, absinfo.max)
 
         # Gamepad.start() bywa wolane z watku executor-a (DeviceMonitor
         # buduje swiezy real driver przez run_in_executor, ktory nie ma
@@ -101,19 +117,13 @@ class Gamepad(GamepadInterface):
 
     def _handle_event(self, event) -> None:
         if event.type == ecodes.EV_KEY:
-            code_name = _resolve_code_name(ecodes.bytype[ecodes.EV_KEY], event.code)
-            if code_name is None or not is_button_code(code_name):
-                return
-            name = self.mapping.get(code_name)
+            name = _resolve_mapped_name(ecodes.bytype[ecodes.EV_KEY], event.code, self.mapping)
             if name is not None:
                 self._state.buttons[name] = bool(event.value)
 
         elif event.type == ecodes.EV_ABS:
-            code_name = _resolve_code_name(ecodes.bytype[ecodes.EV_ABS], event.code)
-            if code_name is None or not is_axis_code(code_name):
-                return
-            name = self.mapping.get(code_name)
+            name = _resolve_mapped_name(ecodes.bytype[ecodes.EV_ABS], event.code, self.mapping)
             if name is None:
                 return
-            abs_min, abs_max = self._abs_ranges.get(code_name, (-1, 1))
+            abs_min, abs_max = self._abs_ranges.get(event.code, (-1, 1))
             self._state.axes[name] = normalize_axis_value(event.value, abs_min, abs_max)
