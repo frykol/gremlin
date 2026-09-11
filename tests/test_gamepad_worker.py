@@ -8,8 +8,11 @@ import asyncio
 import json
 
 from src.hardware.gamepad.interface import GamepadState
+from src.logic.follow_band import compute_drive_pwm
 from src.robot_state import RobotState
 from src.workers.gamepad_worker import GamepadWorker
+
+MOTOR_PAIRS = {"FL": (0, 1), "FR": (3, 2), "RL": (4, 5), "RR": (7, 6)}
 
 
 class FlakyGamepad:
@@ -52,6 +55,14 @@ class RecordingWs:
 
     async def send(self, message):
         self.sent.append(message)
+
+
+class RecordingI2cPwm:
+    def __init__(self):
+        self.calls = []
+
+    def set_pwm(self, channel, on, off):
+        self.calls.append((channel, off))
 
 
 async def _run_worker_briefly(worker, duration=0.05):
@@ -101,5 +112,78 @@ def test_gamepad_worker_sends_only_on_state_change():
         assert first["type"] == "gamepad_state"
         assert first["buttons"] == {"a": False}
         assert second["buttons"] == {"a": True}
+
+    asyncio.run(scenario())
+
+
+def test_gamepad_worker_drives_motors_when_forward_axis_changes():
+    async def scenario():
+        # left_stick_y = -1.0 (galka pchnieta w gore) -> vy = +1.0 (do przodu)
+        states = [
+            GamepadState(buttons={}, axes={"left_stick_y": 0.0, "right_stick_x": 0.0}),
+            GamepadState(buttons={}, axes={"left_stick_y": -1.0, "right_stick_x": 0.0}),
+        ]
+        gamepad = ScriptedGamepad(states)
+        i2c_pwm = RecordingI2cPwm()
+        state = RobotState()
+        worker = GamepadWorker(
+            gamepad=gamepad,
+            state=state,
+            gamepad_ws=RecordingWs(),
+            i2c_pwm=i2c_pwm,
+            motor_pairs=MOTOR_PAIRS,
+            drive_max_pwm=1000,
+            poll_interval=0.001,
+        )
+
+        await _run_worker_briefly(worker, duration=0.05)
+
+        expected = compute_drive_pwm(1.0, 0.0, 1000, MOTOR_PAIRS)
+        driven = dict(i2c_pwm.calls)
+        for channel, pwm in expected.items():
+            assert driven[channel] == pwm
+
+    asyncio.run(scenario())
+
+
+def test_gamepad_worker_ignores_gamepad_when_follow_band_mode_active():
+    async def scenario():
+        states = [
+            GamepadState(buttons={}, axes={"left_stick_y": 0.0, "left_stick_x": 0.0}),
+            GamepadState(buttons={}, axes={"left_stick_y": -1.0, "left_stick_x": 0.0}),
+        ]
+        gamepad = ScriptedGamepad(states)
+        i2c_pwm = RecordingI2cPwm()
+        state = RobotState()
+        state.follow_band_mode = True
+        worker = GamepadWorker(
+            gamepad=gamepad,
+            state=state,
+            gamepad_ws=RecordingWs(),
+            i2c_pwm=i2c_pwm,
+            motor_pairs=MOTOR_PAIRS,
+            drive_max_pwm=1000,
+            poll_interval=0.001,
+        )
+
+        await _run_worker_briefly(worker, duration=0.05)
+
+        assert i2c_pwm.calls == []
+
+    asyncio.run(scenario())
+
+
+def test_gamepad_worker_skips_driving_when_no_i2c_pwm_configured():
+    async def scenario():
+        # Bez i2c_pwm/motor_pairs (domyslne None) worker musi dzialac tak
+        # jak przed dodaniem sterowania - tylko odczyt/wysylka, bez proby
+        # sterowania silnikami.
+        gamepad = ScriptedGamepad([GamepadState(buttons={}, axes={"left_stick_y": -1.0})])
+        state = RobotState()
+        worker = GamepadWorker(gamepad=gamepad, state=state, gamepad_ws=RecordingWs(), poll_interval=0.001)
+
+        await _run_worker_briefly(worker)
+
+        assert state.gamepad_state is not None
 
     asyncio.run(scenario())

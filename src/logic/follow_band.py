@@ -33,16 +33,17 @@ def compute_follow_vector(target_bbox: Tuple[int, int, int, int], frame_width: i
     return vy, omega
 
 
-def compute_follow_pwm(
-    target_bbox: Tuple[int, int, int, int],
-    frame_width: int,
+def compute_drive_pwm(
+    vy: float,
+    omega: float,
     max_pwm: int,
     motor_pairs: Dict[str, Tuple[int, int]],
 ) -> Dict[int, int]:
-    """Liczy PWM per kanal silnika, zeby jechac w strone target_bbox. Zwraca mape
-    {kanal: pwm} obejmujaca wszystkie kanaly z motor_pairs (0 gdy nieaktywny)."""
-    vy, omega = compute_follow_vector(target_bbox, frame_width)
-
+    """Liczy PWM per kanal silnika dla zadanego (vy, omega) w zakresie [-1, 1]
+    (vy = jazda do przodu, omega = skret, dodatni = w prawo). Wspolny rdzen dla
+    trybu podazania (compute_follow_pwm) i recznego sterowania gamepadem
+    (GamepadWorker) - obie sciezki jada tymi samymi znakami/kanalami, zeby
+    "do przodu" znaczylo to samo niezaleznie od zrodla komendy."""
     channel_values: Dict[int, int] = {}
     for role in WHEEL_ROLES:
         pair = motor_pairs.get(role)
@@ -63,6 +64,18 @@ def compute_follow_pwm(
             channel_values[backward_channel] = 0
 
     return channel_values
+
+
+def compute_follow_pwm(
+    target_bbox: Tuple[int, int, int, int],
+    frame_width: int,
+    max_pwm: int,
+    motor_pairs: Dict[str, Tuple[int, int]],
+) -> Dict[int, int]:
+    """Liczy PWM per kanal silnika, zeby jechac w strone target_bbox. Zwraca mape
+    {kanal: pwm} obejmujaca wszystkie kanaly z motor_pairs (0 gdy nieaktywny)."""
+    vy, omega = compute_follow_vector(target_bbox, frame_width)
+    return compute_drive_pwm(vy, omega, max_pwm, motor_pairs)
 
 
 def stop_pwm(motor_pairs: Dict[str, Tuple[int, int]]) -> Dict[int, int]:

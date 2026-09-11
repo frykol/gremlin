@@ -3,19 +3,57 @@ import json
 
 from src.hardware.device_slot import resolve
 from src.hardware.gamepad.interface import GamepadState
+from src.logic.follow_band import compute_drive_pwm
 from src.robot_state import RobotState
 
 
 class GamepadWorker:
-    def __init__(self, gamepad, state: RobotState, gamepad_ws, poll_interval: float = 0.005):
+    def __init__(
+        self,
+        gamepad,
+        state: RobotState,
+        gamepad_ws,
+        i2c_pwm=None,
+        motor_pairs: dict | None = None,
+        drive_max_pwm: int = 1500,
+        drive_forward_axis: str = "left_stick_y",
+        drive_turn_axis: str = "right_stick_x",
+        poll_interval: float = 0.005,
+    ):
         self.gamepad = gamepad
         self.state: RobotState = state
         self.gamepad_ws = gamepad_ws
+        self.i2c_pwm = i2c_pwm
+        self.motor_pairs = motor_pairs
+        self.drive_max_pwm = drive_max_pwm
+        self.drive_forward_axis = drive_forward_axis
+        self.drive_turn_axis = drive_turn_axis
         self.poll_interval: float = poll_interval
 
         self.running: bool = False
         self.task: asyncio.Task | None = None
         self._last_sent: GamepadState | None = None
+
+    def _drive(self, current: GamepadState) -> None:
+        if self.i2c_pwm is None or self.motor_pairs is None:
+            return
+
+        if self.state.follow_band_mode:
+            # tryb podazania steruje silnikami sam - ignorujemy gamepada,
+            # zeby nie kolidowac z autonomiczna jazda (ten sam wzorzec co
+            # reczne komendy "motor" z site w command_processor.py)
+            return
+
+        # Push stick w gore zmniejsza surowa wartosc osi Y w strone min ->
+        # normalize_axis_value zwraca -1 - odwracamy znak, zeby "do przodu"
+        # (push w gore) odpowiadalo dodatniemu vy, tak jak w follow_band.py.
+        vy = -current.axes.get(self.drive_forward_axis, 0.0)
+        omega = current.axes.get(self.drive_turn_axis, 0.0)
+
+        channel_values = compute_drive_pwm(vy, omega, self.drive_max_pwm, self.motor_pairs)
+        i2c_pwm = resolve(self.i2c_pwm)
+        for channel, pwm in channel_values.items():
+            i2c_pwm.set_pwm(channel, 0, pwm)
 
     async def run(self):
         while self.running:
@@ -32,8 +70,15 @@ class GamepadWorker:
             if current is not None:
                 self.state.gamepad_state = current
 
+                # Sterowanie i wyslanie stanu przez websocket sa wyzwalane
+                # tym samym warunkiem "cos sie zmienilo" - dzieki temu obie
+                # reakcje sa tak szybkie, jak tylko poll_interval pozwala
+                # (domyslnie 5ms), zamiast czekac na osobny, wolniejszy tick.
                 if current != self._last_sent:
                     self._last_sent = GamepadState(buttons=dict(current.buttons), axes=dict(current.axes))
+
+                    self._drive(current)
+
                     try:
                         await self.gamepad_ws.send(json.dumps({
                             "type": "gamepad_state",

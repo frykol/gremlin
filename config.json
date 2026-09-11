@@ -97,7 +97,7 @@
     "is_dummy": true
   },
   "gamepad": {
-    "is_dummy": true,
+    "is_dummy": false,
     "mapping": {
       "BTN_SOUTH": "a",
       "BTN_EAST": "b",
@@ -111,9 +111,12 @@
       "ABS_Y": "left_stick_y",
       "ABS_RX": "right_stick_x",
       "ABS_RY": "right_stick_y",
-      "ABS_Z": "trigger_l",
-      "ABS_RZ": "trigger_r"
-    }
+      "ABS_Z": "right_stick_x",
+      "ABS_RZ": "right_stick_y"
+    },
+    "drive_max_pwm": 400,
+    "drive_forward_axis": "left_stick_y",
+    "drive_turn_axis": "right_stick_x"
   },
   "speaker": {
     "alsa_device": "plughw:CARD=sndrpihifiberry,DEV=0",
