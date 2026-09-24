@@ -1,0 +1,13 @@
+[Unit]
+Description=Gremlin robot main program (src.main - control websocket, site, program manager)
+After=multi-user.target network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/gremlin/gremlin
+ExecStart=/home/gremlin/gremlin/.venv/bin/python3 -m src.main --auto-start-simulation
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

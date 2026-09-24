@@ -47,16 +47,29 @@ def _reflectivity_to_color(intensity: int) -> str:
     return f"#{r:02x}{g:02x}{b:02x}"
 
 class CommandProcessor:
-    def __init__(self, command_queue: asyncio.Queue, gpio: GPIOController, encoder: EncoderController, i2c_pwm: I2CPWMInterface, state: RobotState, ws: WSClientInterface, udp_frame_sender, speaker: SpeakerInterface, mic_array: MicArrayInterface | None = None):
+    def __init__(
+        self,
+        command_queue: asyncio.Queue,
+        gpio: GPIOController,
+        encoder: EncoderController | None = None,
+        i2c_pwm: I2CPWMInterface | None = None,
+        state: RobotState | None = None,
+        ws: WSClientInterface | None = None,
+        udp_frame_sender=None,
+        speaker: SpeakerInterface | None = None,
+        mic_array: MicArrayInterface | None = None,
+        device_power_controller=None,
+    ):
         self.command_queue: asyncio.Queue = command_queue
         self.gpio: GPIOController = gpio
-        self.encoder: EncoderController = encoder
+        self.encoder: EncoderController | None = encoder
         self.i2c_pwm = i2c_pwm
-        self.state: RobotState = state
-        self.ws: WSClientInterface = ws
+        self.state: RobotState = state or RobotState()
+        self.ws: WSClientInterface | None = ws
         self.udp_frame_sender = udp_frame_sender
         self.speaker = speaker
         self.mic_array = mic_array
+        self.device_power_controller = device_power_controller
         self.wheel_channel_state: dict[int, int] = {}
 
     async def run(self):
@@ -89,7 +102,12 @@ class CommandProcessor:
         # if cmd:
         #     print(cmd)
 
-        if cmd.get("send") == "logs":
+        if cmd.get("type") == "device_power_status":
+            devices = cmd.get("devices")
+            if self.device_power_controller is not None and isinstance(devices, dict):
+                await self.device_power_controller.apply(devices)
+
+        elif cmd.get("send") == "logs":
             await self._send_log()
 
         elif cmd.get("send") == "status":
@@ -177,6 +195,69 @@ class CommandProcessor:
                 resolve(self.mic_array).reset_noise_profile()
             await self._send_noise_profile_status()
 
+        elif cmd.get("type") == "bind_gamepad_button":
+            button_name = str(cmd.get("button") or cmd.get("name") or "").strip()
+            if not button_name:
+                print("bind_gamepad_button command missing 'button' parameter")
+                return
+
+            bound_action = {}
+            if "action" in cmd:
+                bound_action["type"] = cmd.get("action")
+            elif "command" in cmd:
+                bound_action["type"] = cmd.get("command")
+            elif "type" in cmd and cmd.get("type") != "bind_gamepad_button":
+                bound_action["type"] = cmd.get("type")
+
+            for key, value in cmd.items():
+                if key in {"type", "button", "name", "action", "command"}:
+                    continue
+                bound_action[key] = value
+
+            if not bound_action.get("type"):
+                print("bind_gamepad_button command missing action type")
+                return
+
+            self.state.gamepad_actions[button_name] = bound_action
+
+        elif cmd.get("type") == "pad_config":
+            buttons = cmd.get("buttons") or {}
+            if not isinstance(buttons, dict):
+                print("pad_config command missing buttons mapping")
+                return
+
+            self.state.gamepad_actions = {}
+            for button_name, button_cfg in buttons.items():
+                if not isinstance(button_cfg, dict):
+                    continue
+
+                kind = button_cfg.get("kind")
+                if kind == "sound":
+                    self.state.gamepad_actions[button_name] = {
+                        "type": "play_sound",
+                        "file": button_cfg.get("file"),
+                        "volume": button_cfg.get("volume", 1.0),
+                    }
+                elif kind == "stop":
+                    self.state.gamepad_actions[button_name] = {"type": "stop_sound"}
+                elif kind == "dance":
+                    self.state.gamepad_actions[button_name] = {"type": "dance", "dance": button_cfg.get("dance")}
+                elif kind == "command":
+                    command_name = button_cfg.get("command")
+                    action = {"type": command_name} if command_name else {"type": "custom"}
+                    for key, value in button_cfg.items():
+                        if key in {"id", "kind", "label", "command"}:
+                            continue
+                        action[key] = value
+                    self.state.gamepad_actions[button_name] = action
+                else:
+                    action = {"type": "custom"}
+                    for key, value in button_cfg.items():
+                        if key in {"id", "kind", "label"}:
+                            continue
+                        action[key] = value
+                    self.state.gamepad_actions[button_name] = action
+
         elif cmd.get("type") == "play_sound":
             file_path = cmd.get("file")
             volume = cmd.get("volume", 1.0)
@@ -204,12 +285,61 @@ class CommandProcessor:
                     return
                 file_path = str(tmp)
             if file_path:
-                resolve(self.speaker).play(file_path, volume=volume)
+                if self.speaker is not None:
+                    resolve(self.speaker).play(file_path, volume=volume)
             else:
                 print("play_sound command missing 'file' parameter")
 
         elif cmd.get("type") == "stop_sound":
-            resolve(self.speaker).stop()
+            if self.speaker is not None:
+                resolve(self.speaker).stop()
+
+    async def reload_keymap_file(self, keymap_path: str) -> None:
+        try:
+            with open(keymap_path, "r", encoding="utf-8") as fh:
+                payload = json.load(fh)
+        except (FileNotFoundError, json.JSONDecodeError, OSError) as exc:
+            print(f"keymap reload failed: {exc}")
+            return
+
+        buttons = payload.get("buttons") if isinstance(payload, dict) else None
+        if not isinstance(buttons, dict):
+            print("keymap reload skipped: missing buttons mapping")
+            return
+
+        refreshed = {}
+        for button_name, button_cfg in buttons.items():
+            if not isinstance(button_cfg, dict):
+                continue
+
+            kind = button_cfg.get("kind")
+            if kind == "sound":
+                refreshed[button_name] = {
+                    "type": "play_sound",
+                    "file": button_cfg.get("file"),
+                    "volume": button_cfg.get("volume", 1.0),
+                }
+            elif kind == "stop":
+                refreshed[button_name] = {"type": "stop_sound"}
+            elif kind == "dance":
+                refreshed[button_name] = {"type": "dance", "dance": button_cfg.get("dance")}
+            elif kind == "command":
+                command_name = button_cfg.get("command")
+                action = {"type": command_name} if command_name else {"type": "custom"}
+                for key, value in button_cfg.items():
+                    if key in {"id", "kind", "label", "command"}:
+                        continue
+                    action[key] = value
+                refreshed[button_name] = action
+            else:
+                action = {"type": "custom"}
+                for key, value in button_cfg.items():
+                    if key in {"id", "kind", "label"}:
+                        continue
+                    action[key] = value
+                refreshed[button_name] = action
+
+        self.state.gamepad_actions = refreshed
 
     async def _send_lidar_points(self) -> None:
         buffer = self.state.lidar_point_buffer

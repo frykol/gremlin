@@ -2,6 +2,7 @@ import asyncio
 import subprocess
 
 from src.hardware.ads1115.interface import ADS1115Interface
+from src.hardware.device_slot import resolve
 from src.robot_state import RobotState, ADS1115State
 
 class ADS1115Worker:
@@ -11,11 +12,13 @@ class ADS1115Worker:
         state: RobotState,
         poll_interval: float = 0.1,
         shutdown_min_voltage: float | None = 12,
+        is_dummy: bool = False,
     ):
-        self.ads1115: ADS1115Interface = ads1115
+        self.ads1115 = ads1115
         self.state: RobotState = state
         self.poll_interval: float = poll_interval
         self.shutdown_min_voltage: float | None = shutdown_min_voltage
+        self.is_dummy: bool = is_dummy
 
         self.running: bool = False
         self.task: asyncio.Task | None = None
@@ -26,7 +29,7 @@ class ADS1115Worker:
 
         while self.running:
             try:
-                channels = await loop.run_in_executor(None, self.ads1115.read_channels)
+                channels = await loop.run_in_executor(None, resolve(self.ads1115).read_channels)
             except Exception as exc:
                 print(f"ADS1115 read error: {exc}")
                 channels = None
@@ -43,7 +46,7 @@ class ADS1115Worker:
             await asyncio.sleep(self.poll_interval)
 
     def _check_low_voltage_shutdown(self, a0: float) -> None:
-        if self.shutdown_min_voltage is None or self._shutdown_triggered:
+        if self.is_dummy or self.shutdown_min_voltage is None or self._shutdown_triggered:
             return
 
         if a0 >= self.shutdown_min_voltage:
@@ -63,7 +66,7 @@ class ADS1115Worker:
         if self.running:
             return
 
-        self.ads1115.start()
+        resolve(self.ads1115).start()
 
         self.running = True
         self.task = asyncio.create_task(self.run())
@@ -74,4 +77,4 @@ class ADS1115Worker:
         if self.task is not None:
             await self.task
 
-        self.ads1115.stop()
+        resolve(self.ads1115).stop()

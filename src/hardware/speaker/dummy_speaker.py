@@ -3,6 +3,8 @@ from .interface import SpeakerInterface, PlaybackState
 
 
 class DummySpeaker(SpeakerInterface):
+    IS_DUMMY = True
+
     def __init__(self):
         self.current_file: str | None = None
         self.is_playing: bool = False
@@ -34,3 +36,6 @@ class DummySpeaker(SpeakerInterface):
             current_file=self.current_file,
             position=position,
         )
+
+    def is_healthy(self) -> bool:
+        return True

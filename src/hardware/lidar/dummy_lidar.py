@@ -5,6 +5,8 @@ from .interface import LidarInterface
 
 
 class DummyLidar(LidarInterface):
+    IS_DUMMY = True
+
     def __init__(self, **kwargs):
         self.running = False
 
@@ -29,3 +31,6 @@ class DummyLidar(LidarInterface):
             )
             for _ in range(20)
         ]
+
+    def is_healthy(self) -> bool:
+        return True

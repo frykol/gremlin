@@ -1,0 +1,29 @@
+Obstacle detection pipeline
+===========================
+
+Input: final FUSED BUFFER 0 (up to 30,000 points).
+
+1. Ground RANSAC
+   - 48 deterministic RANSAC candidates.
+   - plane inlier tolerance: 5 cm.
+   - ground normal must keep |nz| >= 0.60, so walls are rejected.
+   - best plane is refined with least-squares z = ax + by + c.
+   - plane normal is flipped toward the LiDAR origin, therefore signed
+     distance from the plane is also approximate obstacle height.
+
+2. Candidate filter
+   - horizontal range: 0.12 .. 12 m.
+   - signed height over ground: 0.05 .. 2.50 m.
+
+3. Clustering
+   - project candidates to 15 cm XY cells.
+   - connect 8-neighbor occupied cells.
+   - minimum 8 points per object.
+   - a one-cell object needs at least 20 points.
+   - keep at most the nearest 64 objects.
+
+4. Output
+   Each object contains center XYZ, XYZ bounding-box size, shortest horizontal
+   distance to the box, point count and flags. Objects are sorted nearest first.
+
+Tuning constants are at the top of lidar_obstacles.c.

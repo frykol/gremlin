@@ -81,3 +81,20 @@ class OakDCamera(CameraInterface):
             height=self.height,
             frame_id=self.frame_id
         )
+
+    def is_healthy(self) -> bool:
+        if not self.running or self.device is None:
+            return False
+        try:
+            if self.device.isClosed():
+                return False
+            # isClosed() tylko odzwierciedla lokalny stan (czy wywolano
+            # close()) - nie wykrywa fizycznego odlaczenia USB, dopoki nie
+            # sprobujemy faktycznie skomunikowac sie z urzadzeniem. Bez tego
+            # wywolania odlaczenie kabla nigdy nie zostaloby wykryte i
+            # DeviceMonitor nigdy nie przelaczylby na dummy/nie sprobowalby
+            # odtworzyc polaczenia po podpieciu z powrotem.
+            self.device.getConnectedCameras()
+            return True
+        except Exception:
+            return False

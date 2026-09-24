@@ -101,8 +101,8 @@
     "mapping": {
       "BTN_SOUTH": "a",
       "BTN_EAST": "b",
-      "BTN_WEST": "x",
-      "BTN_NORTH": "y",
+      "BTN_WEST": "y",
+      "BTN_NORTH": "x",
       "BTN_TL": "bumper_l",
       "BTN_TR": "bumper_r",
       "BTN_START": "start",
@@ -121,6 +121,7 @@
     "drive_max_pwm_step": 100,
     "drive_boost_pwm": 150,
     "drive_forward_axis": "left_stick_y",
+    "drive_lateral_axis": "left_stick_x",
     "drive_turn_axis": "right_stick_x",
     "drive_speed_down_button": "bumper_l",
     "drive_speed_up_button": "bumper_r",
@@ -142,6 +143,10 @@
     "host": "0.0.0.0",
     "port": 8768
   },
+  "esp_lidar": {
+    "ws_port": 8769,
+    "udp_port": 5005
+  },
   "automatic_disconnect": false,
   "disconnect_timeout": 2,
   "enable_site": true,
@@ -150,7 +155,7 @@
     "address": 73,
     "gain": 1,
     "data_rate": 128,
-    "is_dummy": false,
+    "is_dummy": true,
     "a0_percent_range": {
       "min_volts": 10,
       "max_volts": 16

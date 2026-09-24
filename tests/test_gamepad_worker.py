@@ -268,6 +268,37 @@ def test_gamepad_worker_trigger_l_boosts_speed_without_exceeding_cap():
     asyncio.run(scenario())
 
 
+def test_gamepad_worker_runs_bound_button_action_once_on_press():
+    async def scenario():
+        states = [
+            GamepadState(buttons={"a": False}, axes={}),
+            GamepadState(buttons={"a": True}, axes={}),
+            GamepadState(buttons={"a": True}, axes={}),
+        ]
+        gamepad = ScriptedGamepad(states)
+        state = RobotState()
+        state.gamepad_actions = {
+            "a": {"type": "play_sound", "file": "sounds/test.mp3", "volume": 1.0}
+        }
+        invoked = []
+
+        worker = GamepadWorker(
+            gamepad=gamepad,
+            state=state,
+            gamepad_ws=RecordingWs(),
+            i2c_pwm=None,
+            motor_pairs=None,
+            action_handler=lambda cmd: invoked.append(cmd),
+            poll_interval=0.001,
+        )
+
+        await _run_worker_briefly(worker, duration=0.05)
+
+        assert invoked == [{"type": "play_sound", "file": "sounds/test.mp3", "volume": 1.0}]
+
+    asyncio.run(scenario())
+
+
 def test_gamepad_worker_skips_driving_when_no_i2c_pwm_configured():
     async def scenario():
         # Bez i2c_pwm/motor_pairs (domyslne None) worker musi dzialac tak

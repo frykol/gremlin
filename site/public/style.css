@@ -535,6 +535,18 @@ main {
   cursor: grabbing;
 }
 
+#esp-lidar-viewer-canvas {
+  display: block;
+  width: 100%;
+  height: 520px;
+  cursor: grab;
+  touch-action: none;
+}
+
+#esp-lidar-viewer-canvas:active {
+  cursor: grabbing;
+}
+
 .lidar-radar-frame {
   position: relative;
   border-radius: 20px;
@@ -615,6 +627,43 @@ main {
   color: var(--muted);
   background: rgba(255, 255, 255, 0.04);
   white-space: pre-wrap;
+}
+
+.esp-lidar-control {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.esp-lidar-control-heading,
+.esp-lidar-control-actions,
+.esp-lidar-control-toggles {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.esp-lidar-control-heading {
+  justify-content: space-between;
+}
+
+.esp-lidar-control h3 {
+  margin: 0;
+}
+
+.esp-lidar-control-status,
+.esp-lidar-control-message {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.esp-lidar-control-message {
+  min-height: 1.2em;
 }
 
 #obstacle-summary-panel {

@@ -165,6 +165,7 @@ const tabInitializers = [
   typeof initVoiceTab === 'function' ? initVoiceTab : null,
   typeof initSpeakerTab === 'function' ? initSpeakerTab : null,
   typeof initLidarTab === 'function' ? initLidarTab : null,
+  typeof initEspLidarTab === 'function' ? initEspLidarTab : null,
   typeof initSystemStatusTab === 'function' ? initSystemStatusTab : null,
   typeof initLogTab === 'function' ? initLogTab : null,
   typeof initConfigTab === 'function' ? initConfigTab : null,

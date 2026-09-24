@@ -2,6 +2,8 @@ from .interface import I2CPWMInterface
 
 
 class DummyI2CPWM(I2CPWMInterface):
+    IS_DUMMY = True
+
     def __init__(self, **kwargs):
         self.started: bool = False
 
@@ -19,3 +21,6 @@ class DummyI2CPWM(I2CPWMInterface):
             return
         percent = max(0, min(100, percent))
         print(f"i2cPWM (dummy) set_pwm_percent ch={ch} percent={percent}")
+
+    def is_healthy(self) -> bool:
+        return True

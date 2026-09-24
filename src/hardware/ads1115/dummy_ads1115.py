@@ -9,6 +9,8 @@ DUMMY_PRZELICZNIK = 16.8 / 3.185
 
 
 class FakeADS1115(ADS1115Interface):
+    IS_DUMMY = True
+
     def __init__(self, **kwargs):
         self.running = False
 
@@ -31,3 +33,6 @@ class FakeADS1115(ADS1115Interface):
             result.append((raw_voltage, voltage))
 
         return result
+
+    def is_healthy(self) -> bool:
+        return True

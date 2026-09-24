@@ -16,3 +16,7 @@ class LidarInterface(ABC):
         """Zwraca punkty [x, y, z, intensity] zebrane od ostatniego wywolania
         (intensity - sila odbicia 0-255, moze byc pusta lista)."""
         pass
+
+    @abstractmethod
+    def is_healthy(self) -> bool:
+        pass

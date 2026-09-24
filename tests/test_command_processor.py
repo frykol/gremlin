@@ -89,3 +89,128 @@ def test_write_wheel_state_writes_atomic_json(tmp_path):
     data = json.loads(out_path.read_text())
     assert data["channels"] == {"0": 4095, "1": 0, "2": 1500}
     assert isinstance(data["t_mono"], float)
+
+
+def test_bind_gamepad_button_stores_action_mapping():
+    async def run_test():
+        queue = asyncio.Queue()
+        state = RobotState()
+        processor = CommandProcessor(
+            command_queue=queue,
+            gpio=DummyGpio(),
+            i2c_pwm=DummyI2cPwm(),
+            state=state,
+            ws=DummyWs(),
+            udp_frame_sender=DummyUdpFrameSender(),
+        )
+
+        queue.put_nowait({
+            "type": "bind_gamepad_button",
+            "button": "a",
+            "action": "play_sound",
+            "file": "sounds/oiia-oiia-sound.mp3",
+            "volume": 1,
+        })
+        await processor.process_commands()
+
+        assert state.gamepad_actions == {
+            "a": {
+                "type": "play_sound",
+                "file": "sounds/oiia-oiia-sound.mp3",
+                "volume": 1,
+            }
+        }
+
+    asyncio.run(run_test())
+
+
+def test_pad_config_updates_button_actions_from_app_payload():
+    async def run_test():
+        queue = asyncio.Queue()
+        state = RobotState()
+        processor = CommandProcessor(
+            command_queue=queue,
+            gpio=DummyGpio(),
+            i2c_pwm=DummyI2cPwm(),
+            state=state,
+            ws=DummyWs(),
+            udp_frame_sender=DummyUdpFrameSender(),
+        )
+
+        payload = {
+            "type": "pad_config",
+            "pad": "genesis_mangan_pv58",
+            "buttons": {
+                "a": {
+                    "id": "sound:bark.mp3",
+                    "kind": "sound",
+                    "label": "Dźwięk: bark",
+                    "file": "sounds/bark.mp3",
+                    "volume": 1,
+                },
+                "b": {
+                    "id": "stop",
+                    "kind": "stop",
+                    "label": "STOP",
+                },
+                "x": {
+                    "id": "sound:oiia-oiia-sound.mp3",
+                    "kind": "sound",
+                    "label": "Dźwięk: oiia oiia sound",
+                    "file": "sounds/oiia-oiia-sound.mp3",
+                    "volume": 1,
+                },
+            },
+        }
+
+        queue.put_nowait(payload)
+        await processor.process_commands()
+
+        assert state.gamepad_actions == {
+            "a": {"type": "play_sound", "file": "sounds/bark.mp3", "volume": 1},
+            "b": {"type": "stop_sound"},
+            "x": {"type": "play_sound", "file": "sounds/oiia-oiia-sound.mp3", "volume": 1},
+        }
+
+    asyncio.run(run_test())
+
+
+def test_keymap_file_reload_overrides_gamepad_actions_without_restart(tmp_path):
+    async def run_test():
+        queue = asyncio.Queue()
+        state = RobotState()
+        processor = CommandProcessor(
+            command_queue=queue,
+            gpio=DummyGpio(),
+            i2c_pwm=DummyI2cPwm(),
+            state=state,
+            ws=DummyWs(),
+            udp_frame_sender=DummyUdpFrameSender(),
+        )
+
+        keymap_path = tmp_path / "keymap.json"
+        keymap_path.write_text(json.dumps({
+            "buttons": {
+                "a": {"kind": "sound", "file": "sounds/bark.mp3", "volume": 1},
+                "b": {"kind": "stop", "label": "STOP"},
+            }
+        }))
+
+        await processor.reload_keymap_file(str(keymap_path))
+        assert state.gamepad_actions == {
+            "a": {"type": "play_sound", "file": "sounds/bark.mp3", "volume": 1},
+            "b": {"type": "stop_sound"},
+        }
+
+        keymap_path.write_text(json.dumps({
+            "buttons": {
+                "a": {"kind": "sound", "file": "sounds/oiia-oiia-sound.mp3", "volume": 0.4},
+            }
+        }))
+
+        await processor.reload_keymap_file(str(keymap_path))
+        assert state.gamepad_actions == {
+            "a": {"type": "play_sound", "file": "sounds/oiia-oiia-sound.mp3", "volume": 0.4},
+        }
+
+    asyncio.run(run_test())

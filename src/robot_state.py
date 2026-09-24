@@ -1,5 +1,5 @@
 from collections import deque
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import List, Optional, Tuple
 
@@ -134,3 +134,4 @@ class RobotState:
     follow_band_mode: bool = False
     follow_band_max_pwm: int = 1200
     gamepad_state: GamepadState | None = None
+    gamepad_actions: dict[str, dict] = field(default_factory=dict)

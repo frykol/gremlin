@@ -6,6 +6,8 @@ import numpy as np
 from .interface import AudioFilterConfig, MicArrayInterface, AudioChunk, NoiseProfileStatus
 
 class FakeReSpeakerMicArray(MicArrayInterface):
+    IS_DUMMY = True
+
     def __init__(
         self,
         sample_rate: int = 16000,
@@ -67,3 +69,6 @@ class FakeReSpeakerMicArray(MicArrayInterface):
             channels=self.channels,
             chunk_id=self.chunk_id,
         )
+
+    def is_healthy(self) -> bool:
+        return True

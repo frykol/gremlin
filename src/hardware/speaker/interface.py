@@ -24,3 +24,7 @@ class SpeakerInterface(ABC):
     def get_state(self) -> PlaybackState:
         """Get current playback state."""
         pass
+
+    @abstractmethod
+    def is_healthy(self) -> bool:
+        pass

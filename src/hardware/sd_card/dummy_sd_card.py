@@ -4,6 +4,8 @@ from .interface import SdCardInterface
 
 
 class DummySdCardReader(SdCardInterface):
+    IS_DUMMY = True
+
     def __init__(self, device: str = "/dev/mmcblk1p1", mount_point: str = "/mnt/sdcard"):
         self.device: str = device
         self.mount_point: str = mount_point
@@ -37,3 +39,6 @@ class DummySdCardReader(SdCardInterface):
             return 0
 
         return 1024 * 1024 * 1024
+
+    def is_healthy(self) -> bool:
+        return True

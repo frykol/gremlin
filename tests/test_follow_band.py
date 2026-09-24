@@ -1,6 +1,6 @@
 import unittest
 
-from src.logic.follow_band import compute_follow_pwm, compute_follow_vector, stop_pwm
+from src.logic.follow_band import compute_drive_pwm, compute_follow_pwm, compute_follow_vector, stop_pwm
 
 MOTOR_PAIRS = {"FL": (0, 1), "FR": (3, 2), "RL": (4, 5), "RR": (7, 6)}
 
@@ -49,6 +49,32 @@ class ComputeFollowPwmTests(unittest.TestCase):
         values = compute_follow_pwm((90, 0, 20, 50), frame_width=200, max_pwm=500, motor_pairs=MOTOR_PAIRS)
 
         self.assertEqual(set(values.keys()), {0, 1, 2, 3, 4, 5, 6, 7})
+
+
+class ComputeDrivePwmTests(unittest.TestCase):
+    def test_lateral_input_drives_wheels_in_opposite_pairs(self):
+        values = compute_drive_pwm(0.0, 0.0, 1000, MOTOR_PAIRS, lateral=1.0)
+
+        self.assertEqual(values[0], 1000)
+        self.assertEqual(values[1], 0)
+        self.assertEqual(values[2], 1000)
+        self.assertEqual(values[3], 0)
+        self.assertEqual(values[4], 0)
+        self.assertEqual(values[5], 1000)
+        self.assertEqual(values[6], 0)
+        self.assertEqual(values[7], 1000)
+
+    def test_diagonal_translation_and_rotation_are_combined_and_normalized(self):
+        values = compute_drive_pwm(0.8, 0.7, 2000, MOTOR_PAIRS, lateral=0.8)
+
+        self.assertLessEqual(max(values.values()), 2000)
+        self.assertGreater(min(value for value in values.values() if value > 0), 0)
+        self.assertNotEqual(values[0], values[2])
+
+    def test_zero_inputs_stop_all_wheels(self):
+        values = compute_drive_pwm(0.0, 0.0, 2000, MOTOR_PAIRS, lateral=0.0)
+
+        self.assertEqual(set(values.values()), {0})
 
 
 class StopPwmTests(unittest.TestCase):

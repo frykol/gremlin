@@ -33,6 +33,15 @@ class i2cPWM(I2CPWMInterface):
 
         self.started = True
 
+    def is_healthy(self) -> bool:
+        if not self.started or self.bus is None:
+            return False
+        try:
+            self.bus.read_byte_data(ADDR, MODE1)
+            return True
+        except OSError:
+            return False
+
     def set_pwm(self, ch, on, off) -> None:
         if self.bus is None:
             return

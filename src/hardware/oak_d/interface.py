@@ -23,3 +23,7 @@ class CameraInterface(ABC):
     @abstractmethod
     def get_camera_frame(self) -> Optional[CameraFrame]:
         pass
+
+    @abstractmethod
+    def is_healthy(self) -> bool:
+        pass

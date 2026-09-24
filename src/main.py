@@ -4,6 +4,7 @@ import json
 import signal
 import errno
 import asyncio
+import argparse
 from pathlib import Path
 from asyncio import subprocess as asp
 import builtins
@@ -158,6 +159,50 @@ def _build_lidar_command(config: dict) -> list[str]:
     ]
 
 
+def _build_esp_lidar_command(config: dict) -> list[str]:
+    esp_lidar_config = config.get("esp_lidar", {})
+    return [
+        sys.executable,
+        "-m",
+        "backend.esp_lidar.http_api",
+        "--port",
+        str(esp_lidar_config.get("ws_port", 8769)),
+        "--udp-port",
+        str(esp_lidar_config.get("udp_port", 5005)),
+    ]
+
+
+async def _start_esp_lidar_service(config: dict, log_file) -> asp.Process | None:
+    try:
+        proc = await asp.create_subprocess_exec(
+            *_build_esp_lidar_command(config),
+            stdout=asp.PIPE,
+            stderr=asp.STDOUT,
+        )
+    except Exception as e:
+        print(f"Failed to start ESP LiDAR service: {e}")
+        return None
+
+    if proc.stdout:
+        asyncio.create_task(_drain_stream_to_log(proc.stdout, log_file))
+    print(f"ESP LiDAR service started (pid={proc.pid})")
+    return proc
+
+
+async def _stop_esp_lidar_service(proc: asp.Process | None):
+    if proc is None or proc.returncode is not None:
+        return
+    try:
+        proc.terminate()
+        try:
+            await asyncio.wait_for(proc.wait(), timeout=5.0)
+        except asyncio.TimeoutError:
+            proc.kill()
+            await proc.wait()
+    except Exception as e:
+        print(f"Error stopping ESP LiDAR service: {e}")
+
+
 async def _start_lidar_service(config: dict, log_file) -> asp.Process | None:
     try:
         proc = await asp.create_subprocess_exec(
@@ -204,7 +249,18 @@ async def _stop_site(proc: asp.Process | None):
         print(f"Error stopping site: {e}")
 
 
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Gremlin robot main program")
+    parser.add_argument(
+        "--auto-start-simulation",
+        action="store_true",
+        help="Automatycznie uruchamia program_manager (symulacje) zaraz po starcie, bez czekania na komende z websocketa",
+    )
+    return parser.parse_args()
+
+
 async def main():
+    args = _parse_args()
     config = load_config("config.json")
 
     bind_host, bind_port = build_bind_address(config)
@@ -470,9 +526,16 @@ async def main():
 
     site_proc = None
     lidar_proc = None
+    esp_lidar_proc = None
     if config.get("enable_site", False):
         site_proc = await _start_site(log_file)
         lidar_proc = await _start_lidar_service(config, log_file)
+        esp_lidar_proc = await _start_esp_lidar_service(config, log_file)
+
+    if args.auto_start_simulation:
+        started = await start_program_manager()
+        if started:
+            await send_ws_status("on", True, "Program manager auto-started (--auto-start-simulation)")
 
     tasks = [
         asyncio.create_task(process_instructions()),
@@ -499,6 +562,7 @@ async def main():
         await stop_program_manager()
         await _stop_site(site_proc)
         await _stop_lidar_service(lidar_proc)
+        await _stop_esp_lidar_service(esp_lidar_proc)
 
         for t in tasks:
             try:

@@ -51,6 +51,7 @@
         <button class="tab-button" data-tab="voice">Głos</button>
         <button class="tab-button" data-tab="speaker">Głośnik</button>
         <button class="tab-button" data-tab="lidar">Lidar</button>
+        <button class="tab-button" data-tab="esp-lidar">ESP Lidar</button>
         <button class="tab-button" data-tab="system-status">System Status</button>
         <button class="tab-button" data-tab="log">Log</button>
         <button class="tab-button" data-tab="config">Config</button>
@@ -329,6 +330,71 @@
           </div>
         </section>
 
+        <section id="tab-esp-lidar" class="tab-panel">
+          <div class="panel-card lidar-card">
+            <p class="panel-kicker">Percepcja</p>
+            <h2>Chmura punktów ESP32P4 LiDAR</h2>
+            <div id="esp-lidar-connection-banner" class="lidar-banner" role="status"></div>
+            <div class="lidar-frame">
+              <canvas id="esp-lidar-viewer-canvas" aria-label="Wizualizacja chmury punktów ESP LiDAR"></canvas>
+            </div>
+            <div class="lidar-legend" aria-hidden="true">
+              <span class="lidar-legend-label">słabe odbicie</span>
+              <div class="lidar-legend-bar"></div>
+              <span class="lidar-legend-label">silne odbicie</span>
+            </div>
+            <div class="lidar-tilt-control">
+              <label><input id="esp-lidar-imu-auto-toggle" type="checkbox" /> Użyj kątów z IMU (auto), gdy dostępne</label>
+              <label for="esp-lidar-imu-offset-x-slider">Doregulacja X przy IMU: <span id="esp-lidar-imu-offset-x-value">-30°</span></label>
+              <input id="esp-lidar-imu-offset-x-slider" type="range" min="-180" max="180" step="1" value="-30" />
+              <label for="esp-lidar-imu-offset-y-slider">Doregulacja Y przy IMU: <span id="esp-lidar-imu-offset-y-value">0°</span></label>
+              <input id="esp-lidar-imu-offset-y-slider" type="range" min="-180" max="180" step="1" value="0" />
+              <label for="esp-lidar-imu-offset-z-slider">Doregulacja Z przy IMU: <span id="esp-lidar-imu-offset-z-value">0°</span></label>
+              <input id="esp-lidar-imu-offset-z-slider" type="range" min="-180" max="180" step="1" value="0" />
+              <label for="esp-lidar-tilt-x-slider">Obrót X (pitch): <span id="esp-lidar-tilt-x-value">-122°</span></label>
+              <input id="esp-lidar-tilt-x-slider" type="range" min="-180" max="180" step="1" value="-122" />
+              <label for="esp-lidar-tilt-y-slider">Obrót Y (yaw): <span id="esp-lidar-tilt-y-value">19°</span></label>
+              <input id="esp-lidar-tilt-y-slider" type="range" min="-180" max="180" step="1" value="19" />
+              <label for="esp-lidar-tilt-z-slider">Obrót Z (roll): <span id="esp-lidar-tilt-z-value">-11°</span></label>
+              <input id="esp-lidar-tilt-z-slider" type="range" min="-180" max="180" step="1" value="-11" />
+              <button id="esp-lidar-tilt-reset" type="button">Reset</button>
+            </div>
+            <div id="esp-lidar-control" class="esp-lidar-control">
+              <div class="esp-lidar-control-heading">
+                <h3>Sterowanie ESP</h3>
+                <span id="esp-lidar-control-status" role="status">status nieznany</span>
+              </div>
+              <div class="esp-lidar-control-actions">
+                <button id="esp-lidar-ping" type="button">Ping</button>
+                <button id="esp-lidar-refresh-status" type="button">Odśwież status</button>
+                <button id="esp-lidar-clear-history" type="button">Wyczyść historię</button>
+              </div>
+              <div class="esp-lidar-control-toggles">
+                <label><input id="esp-lidar-active" type="checkbox" /> LiDAR</label>
+                <label><input id="esp-lidar-fusion" type="checkbox" /> Fusion</label>
+                <label><input id="esp-lidar-cloud" type="checkbox" /> Cloud</label>
+                <label><input id="esp-lidar-imu" type="checkbox" /> IMU</label>
+                <label><input id="esp-lidar-obstacles" type="checkbox" /> Obstacles</label>
+              </div>
+              <label for="esp-lidar-stream-mask">Maska strumieni</label>
+              <select id="esp-lidar-stream-mask">
+                <option value="0">none</option>
+                <option value="1">cloud</option>
+                <option value="2">imu</option>
+                <option value="3">cloud + imu</option>
+                <option value="4">obstacles</option>
+                <option value="5">cloud + obstacles</option>
+                <option value="6">imu + obstacles</option>
+                <option value="7">all</option>
+              </select>
+              <div id="esp-lidar-control-message" class="esp-lidar-control-message" role="alert"></div>
+            </div>
+            <div class="lidar-readouts">
+              <pre id="esp-lidar-metrics-panel">oczekiwanie na metryki</pre>
+            </div>
+          </div>
+        </section>
+
         <section id="tab-system-status" class="tab-panel">
           <div class="panel-card">
             <p class="panel-kicker">Diagnostyka</p>
@@ -375,6 +441,7 @@
   <script src="tabs/ai.js"></script>
   <script src="tabs/slam.js"></script>
   <script src="tabs/lidar.js"></script>
+  <script src="tabs/esp-lidar.js"></script>
   <script src="tabs/system-status.js"></script>
   <script src="tabs/log.js"></script>
   <script src="tabs/config.js"></script>
@@ -387,6 +454,8 @@
   <script src="lidar/js/imu_panel.js"></script>
   <script src="lidar/js/metrics_panel.js"></script>
   <script src="lidar/js/ws_client.js"></script>
+  <script src="esp_lidar/js/pointcloud.js"></script>
+  <script src="esp_lidar/js/viewer.js"></script>
   <script src="app.js?v=20260826b"></script>
 </body>
 

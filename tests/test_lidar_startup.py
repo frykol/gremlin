@@ -28,6 +28,6 @@ def test_build_lidar_command_finds_sdk_bridge_by_default():
 
 
 def test_external_bridge_uses_dummy_for_legacy_serial_worker():
-    lidar = create_lidar({'lidar': {'external_bridge': True}})
+    lidar_slot = create_lidar({'lidar': {'external_bridge': True}})
 
-    assert isinstance(lidar, DummyLidar)
+    assert isinstance(lidar_slot.get(), DummyLidar)

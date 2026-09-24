@@ -18,8 +18,8 @@ def main():
 
     clear_status_log()
 
-    sd_card = create_sd_card(config)
-    sd_card.start()
+    sd_card_slot = create_sd_card(config)
+    sd_card = sd_card_slot.get()
 
     custom_path = os.path.join(sd_card.mount_point, "custom.py")
 

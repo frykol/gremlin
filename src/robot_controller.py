@@ -1,4 +1,5 @@
 import asyncio
+import os
 import time
 
 import numpy as np
@@ -15,6 +16,7 @@ from src.hardware.ads1115.interface import ADS1115Interface
 from src.hardware.lidar.interface import LidarInterface
 from src.hardware.speaker.interface import SpeakerInterface
 from src.hardware.device_slot import DeviceSlot, resolve
+from src.hardware.device_power_controller import DevicePowerController
 
 from .robot_state import RobotState
 from .services.command_processor import CommandProcessor
@@ -41,6 +43,12 @@ class RobotController:
         self.config: dict = config
         self.state: RobotState = RobotState()
         self.sd_card_slot: DeviceSlot = sd_card
+        self.device_power_controller = DevicePowerController(
+            camera=camera.monitor,
+            lidar=lidar.monitor,
+            mic=mic_array.monitor,
+            speaker=speaker.monitor,
+        )
 
         camera_stream_config = config.get("camera_stream", {})
 
@@ -60,6 +68,7 @@ class RobotController:
             udp_frame_sender=self.udp_frame_sender,
             speaker=speaker,
             mic_array=mic_array,
+            device_power_controller=self.device_power_controller,
         )
 
         self.camera_worker = CameraWorker(
@@ -97,10 +106,12 @@ class RobotController:
             drive_max_pwm_step=gamepad_config.get("drive_max_pwm_step", 100),
             drive_boost_pwm=gamepad_config.get("drive_boost_pwm", 150),
             drive_forward_axis=gamepad_config.get("drive_forward_axis", "left_stick_y"),
+            drive_lateral_axis=gamepad_config.get("drive_lateral_axis", "left_stick_x"),
             drive_turn_axis=gamepad_config.get("drive_turn_axis", "right_stick_x"),
             drive_speed_down_button=gamepad_config.get("drive_speed_down_button", "bumper_l"),
             drive_speed_up_button=gamepad_config.get("drive_speed_up_button", "bumper_r"),
             drive_boost_button=gamepad_config.get("drive_boost_button", "trigger_l"),
+            action_handler=self.command_processor._dispatch_command,
         )
 
         ads1115_config = config.get("ads1115", {})
@@ -109,6 +120,7 @@ class RobotController:
             state=self.state,
             ads1115=ads1115,
             shutdown_min_voltage=ads1115_config.get("shutdown_min_voltage", 12),
+            is_dummy=ads1115_config.get("is_dummy", False),
         )
 
         self.lidar_worker = LidarWorker(
@@ -223,6 +235,19 @@ class RobotController:
                 f"lidar_points={lidar_points}"
             )
 
+    async def watch_keymap_file(self, keymap_path: str = "keymap.json", poll_interval: float = 0.5):
+        last_mtime = None
+        while True:
+            try:
+                if os.path.exists(keymap_path):
+                    mtime = os.path.getmtime(keymap_path)
+                    if last_mtime is None or mtime != last_mtime:
+                        last_mtime = mtime
+                        await self.command_processor.reload_keymap_file(keymap_path)
+            except Exception as exc:
+                print(f"keymap watcher error: {exc}")
+            await asyncio.sleep(poll_interval)
+
     async def run_gamepad_ws(self):
         try:
             await self.gamepad_ws.connect()
@@ -249,6 +274,7 @@ class RobotController:
             asyncio.create_task(self.logic.run()),
             asyncio.create_task(self.voice.run()),
             asyncio.create_task(self.status_logger()),
+            asyncio.create_task(self.watch_keymap_file("keymap.json")),
             asyncio.create_task(self.run_gamepad_ws()),
         ]
 

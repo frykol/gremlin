@@ -5,6 +5,7 @@ from typing import Dict, Tuple
 # frontend driving agree on which way is "left"/"forward".
 FORWARD_SIGN = {"FL": -1, "FR": -1, "RL": -1, "RR": -1}
 TURN_RIGHT_SIGN = {"FL": 1, "FR": -1, "RL": 1, "RR": -1}
+STRAFE_RIGHT_SIGN = {"FL": 1, "FR": -1, "RL": -1, "RR": 1}
 
 WHEEL_ROLES = ("FL", "FR", "RL", "RR")
 
@@ -38,27 +39,37 @@ def compute_drive_pwm(
     omega: float,
     max_pwm: int,
     motor_pairs: Dict[str, Tuple[int, int]],
+    lateral: float = 0.0,
 ) -> Dict[int, int]:
-    """Liczy PWM per kanal silnika dla zadanego (vy, omega) w zakresie [-1, 1]
-    (vy = jazda do przodu, omega = skret, dodatni = w prawo). Wspolny rdzen dla
-    trybu podazania (compute_follow_pwm) i recznego sterowania gamepadem
-    (GamepadWorker) - obie sciezki jada tymi samymi znakami/kanalami, zeby
-    "do przodu" znaczylo to samo niezaleznie od zrodla komendy."""
+    """Liczy PWM dla jazdy mecanum: przod/tyl, bok oraz obrot.
+
+    Wartosci wejscia sa laczone na poziomie kazdego kola, a potem wspolnie
+    normalizowane. Zachowuje to proporcje jazdy po skosie i obrotu, jednoczesnie
+    gwarantujac, ze zaden kanal nie przekroczy max_pwm.
+    """
     channel_values: Dict[int, int] = {}
+    wheel_nets = {
+        role: vy * FORWARD_SIGN[role]
+        + lateral * STRAFE_RIGHT_SIGN[role]
+        + omega * TURN_RIGHT_SIGN[role]
+        for role in WHEEL_ROLES
+    }
+    normalization = max(1.0, max(abs(net) for net in wheel_nets.values()))
+
     for role in WHEEL_ROLES:
         pair = motor_pairs.get(role)
         if not pair:
             continue
         forward_channel, backward_channel = pair
 
-        net = (vy * FORWARD_SIGN[role] + omega * TURN_RIGHT_SIGN[role]) * max_pwm
+        net = wheel_nets[role] / normalization * max_pwm
 
         if net > 0:
-            channel_values[forward_channel] = round(min(net, max_pwm))
+            channel_values[forward_channel] = round(net)
             channel_values[backward_channel] = 0
         elif net < 0:
             channel_values[forward_channel] = 0
-            channel_values[backward_channel] = round(min(-net, max_pwm))
+            channel_values[backward_channel] = round(-net)
         else:
             channel_values[forward_channel] = 0
             channel_values[backward_channel] = 0

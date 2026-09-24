@@ -66,6 +66,11 @@ class ADS1115(ADS1115Interface):
         self._bus = SMBus(self.bus_num)
         self.address = self._resolve_address()
 
+    def is_healthy(self) -> bool:
+        if self._bus is None:
+            return False
+        return self._probe_address(self.address)
+
     def _probe_address(self, address: int) -> bool:
         try:
             self._bus.read_i2c_block_data(address, CONFIG_REG, 2)

@@ -3,6 +3,7 @@ import time
 
 from ..hardware.gpio.gpio_controller import GPIOController
 from ..hardware.i2c.interface import I2CPWMInterface
+from ..hardware.device_slot import resolve
 from ..robot_state import RobotState
 from .follow_band import compute_follow_pwm, stop_pwm
 
@@ -34,8 +35,9 @@ class RobotLogic:
         pass
 
     def _apply_pwm(self, channel_values: dict) -> None:
+        i2c_pwm = resolve(self.i2c_pwm)
         for channel, pwm in channel_values.items():
-            self.i2c_pwm.set_pwm(channel, 0, pwm)
+            i2c_pwm.set_pwm(channel, 0, pwm)
 
     def _tick_follow_band(self) -> None:
         color_state = self.state.color_detection_state

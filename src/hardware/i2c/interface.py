@@ -12,3 +12,7 @@ class I2CPWMInterface(ABC):
     @abstractmethod
     def set_pwm_percent(self, ch: int, percent: float) -> None:
         pass
+
+    @abstractmethod
+    def is_healthy(self) -> bool:
+        pass

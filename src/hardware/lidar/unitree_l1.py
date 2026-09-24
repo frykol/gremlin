@@ -1,4 +1,5 @@
 import math
+import os
 import struct
 from typing import List, Tuple
 
@@ -221,6 +222,14 @@ class UnitreeL1Lidar(LidarInterface):
             return
         self._ser = serial.Serial(self.port, self.baud, timeout=0)
         self.set_working_mode(WORK_MODE_NORMAL)
+
+    def is_healthy(self) -> bool:
+        if self._ser is None:
+            return False
+        try:
+            return self._ser.is_open and os.path.exists(self.port)
+        except Exception:
+            return False
 
     def stop(self) -> None:
         if self._ser is not None:

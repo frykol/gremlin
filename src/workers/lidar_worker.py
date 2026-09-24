@@ -2,6 +2,7 @@ import asyncio
 from typing import List, Tuple
 
 from src.hardware.lidar.interface import LidarInterface
+from src.hardware.device_slot import resolve
 from src.robot_state import RobotState, LidarPointBuffer, LidarBufferOverwriteMode
 
 
@@ -52,7 +53,7 @@ class CycleDecimator:
 
 class LidarWorker:
     def __init__(self, lidar: LidarInterface, state: RobotState, config: dict, poll_interval: float = 0.02):
-        self.lidar: LidarInterface = lidar
+        self.lidar = lidar
         self.state: RobotState = state
         self.poll_interval: float = poll_interval
 
@@ -86,7 +87,16 @@ class LidarWorker:
         loop = asyncio.get_running_loop()
 
         while self.running:
-            points = await loop.run_in_executor(None, self.lidar.read_points)
+            try:
+                points = await loop.run_in_executor(None, resolve(self.lidar).read_points)
+            except Exception as exc:
+                # Bez tego try/except wyjatek z realnego sprzetu (np. port
+                # szeregowy znikajacy przy odlaczeniu) ubijalby cala petle na
+                # stale - dane przestawalyby plynac na zawsze, nawet po tym
+                # jak DeviceMonitor podstawilby dzialajacy dummy/odzyskany
+                # lidar (patrz ten sam problem naprawiony w CameraWorker).
+                print(f"Lidar read error: {exc}")
+                points = []
 
             if points:
                 if self.decimate_enabled:
@@ -101,7 +111,7 @@ class LidarWorker:
         if self.running:
             return
 
-        self.lidar.start()
+        resolve(self.lidar).start()
 
         self.running = True
         self.task = asyncio.create_task(self.run())
@@ -112,4 +122,4 @@ class LidarWorker:
         if self.task is not None:
             await self.task
 
-        self.lidar.stop()
+        resolve(self.lidar).stop()

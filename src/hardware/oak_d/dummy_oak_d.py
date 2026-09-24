@@ -5,6 +5,8 @@ from .interface import CameraInterface, CameraFrame
 from typing import Optional
 
 class FakeOakDCamera(CameraInterface):
+    IS_DUMMY = True
+
     def __init__(self, width: int = 640, height: int = 480):
         self.width: int = width
         self.height: int = height
@@ -31,3 +33,6 @@ class FakeOakDCamera(CameraInterface):
         frame[:, x:x + 20] = 255
 
         return CameraFrame(image=frame, timestamp=time.time(), width=self.width, height=self.height, frame_id=self.counter)
+
+    def is_healthy(self) -> bool:
+        return True

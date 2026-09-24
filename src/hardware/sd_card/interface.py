@@ -22,3 +22,7 @@ class SdCardInterface(ABC):
     @abstractmethod
     def get_free_space_bytes(self) -> int:
         pass
+
+    @abstractmethod
+    def is_healthy(self) -> bool:
+        pass

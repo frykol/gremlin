@@ -4,6 +4,8 @@ import time
 from pathlib import Path
 from typing import Optional
 
+_ASOUND_CARDS_PATH = "/proc/asound/cards"
+
 from .interface import SpeakerInterface, PlaybackState
 
 
@@ -26,6 +28,25 @@ class I2SSpeaker(SpeakerInterface):
         self._playback_thread: Optional[threading.Thread] = None
 
         print(f"I2SSpeaker initialized on ALSA device {alsa_device}")
+
+    def is_healthy(self) -> bool:
+        """I2SSpeaker nie otwiera urzadzenia przy inicjalizacji (odtwarzanie
+        idzie przez subprocesy ffmpeg/aplay per-plik), wiec jedyna dostepna
+        sprawdzalna oznaka obecnosci karty to wpis w /proc/asound/cards -
+        wyciagamy nazwe karty z ALSA device string (np.
+        "plughw:CARD=sndrpihifiberry,DEV=0" -> "sndrpihifiberry")."""
+        card_name = None
+        if "CARD=" in self.alsa_device:
+            card_name = self.alsa_device.split("CARD=", 1)[1].split(",", 1)[0]
+
+        if card_name is None:
+            return True
+
+        try:
+            with open(_ASOUND_CARDS_PATH, encoding="utf-8") as f:
+                return card_name in f.read()
+        except OSError:
+            return False
 
     def play(self, file_path: str, volume: float = 1.0) -> bool:
         """Play audio file asynchronously. Supports MP3 and WAV.

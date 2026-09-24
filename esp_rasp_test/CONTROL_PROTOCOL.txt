@@ -1,0 +1,78 @@
+ESP32-P4 <-> Raspberry Pi control channel
+=========================================
+
+Data direction remains unchanged:
+  ESP32-P4 192.168.50.10 -> Raspberry Pi 192.168.50.20 UDP/5005
+
+New command direction:
+  Raspberry Pi -> ESP32-P4 192.168.50.10 UDP/5006
+
+Only commands from 192.168.50.20 are accepted.
+
+The control plane reuses LIDR protocol v1 and the same 32-byte header.
+
+message_type 128 = COMMAND
+--------------------------
+header.id        request_id (uint32)
+header.field12   command_id (uint16)
+header.field14   0
+header.field16   payload size = 16
+header.field18   0
+header.timestamp 0 is allowed
+payload          uint32 args[4], little-endian
+
+message_type 129 = COMMAND_ACK
+------------------------------
+header.id        request_id copied from request
+header.field12   command_id
+header.field14   result code
+header.field16   payload size = 16
+header.timestamp ESP monotonic timestamp_us
+payload uint32[4]:
+  [0] state_flags: bit0 logical LiDAR active, bit1 fusion enabled
+  [1] stream_mask: bit0 cloud, bit1 IMU, bit2 obstacles
+  [2] number of accepted command datagrams since boot
+  [3] ESP uptime_ms (low 32 bits)
+
+Result codes:
+  0 OK
+  1 BAD_COMMAND
+  2 BAD_ARGUMENT
+  3 UNSUPPORTED
+  4 INTERNAL_ERROR
+
+Commands:
+  1 PING
+  2 GET_STATUS
+  3 SET_LIDAR_ACTIVE       arg0 = 0/1
+  4 SET_STREAM_MASK        arg0 = mask 0..7
+  5 SET_FUSION_ACTIVE      arg0 = 0/1
+  6 CLEAR_HISTORY
+  7 SET_CLOUD_ACTIVE       arg0 = 0/1
+  8 SET_IMU_ACTIVE         arg0 = 0/1
+  9 SET_OBSTACLES_ACTIVE   arg0 = 0/1
+
+Raspberry examples:
+  python rasp_control.py status
+  python rasp_control.py ping
+  python rasp_control.py lidar off
+  python rasp_control.py lidar on
+  python rasp_control.py cloud off
+  python rasp_control.py imu off
+  python rasp_control.py obstacles off
+  python rasp_control.py fusion off
+  python rasp_control.py clear-history
+  python rasp_control.py streams cloud,obstacles
+  python rasp_control.py streams all
+  python rasp_control.py streams none
+
+IMPORTANT: SET_LIDAR_ACTIVE is currently a LOGICAL ESP-side stop. The ESP keeps
+reading the Unitree UART so its RX FIFO cannot overflow, but it stops building,
+fusing and transmitting LiDAR data. It does not cut 12 V power and does not
+stop the L1 rotor/laser physically.
+
+Unitree's official L1 SDK exposes NORMAL/STANDBY device modes, but this project
+uses direct MAVLink UART parsing and the vendor control-frame definition is not
+part of the code used here. Do not guess undocumented control bytes. A future
+version can map a new command to true Unitree STANDBY once that control frame is
+verified, or to a dedicated power-enable GPIO/MOSFET if the robot has one.

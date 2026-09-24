@@ -27,6 +27,9 @@ class SdCardReader(SdCardInterface):
         self.running = True
         print("Czytnik kart SD (HW-125) działa")
 
+    def is_healthy(self) -> bool:
+        return self.running and os.path.ismount(self.mount_point)
+
     def stop(self) -> None:
         self.running = False
 

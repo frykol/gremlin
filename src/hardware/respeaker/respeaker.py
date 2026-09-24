@@ -256,6 +256,14 @@ class ReSpeakerMicArray(MicArrayInterface):
         self.running = True
         print("ReSpeaker mic array działa")
 
+    def is_healthy(self) -> bool:
+        if not self.running or self._stream is None:
+            return False
+        try:
+            return bool(self._stream.active) and not self._stream.closed
+        except Exception:
+            return False
+
     def stop(self) -> None:
         self.running = False
 

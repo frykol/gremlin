@@ -75,3 +75,7 @@ class MicArrayInterface(ABC):
     @abstractmethod
     def get_noise_profile_status(self) -> NoiseProfileStatus:
         pass
+
+    @abstractmethod
+    def is_healthy(self) -> bool:
+        pass
