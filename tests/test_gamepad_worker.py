@@ -146,6 +146,27 @@ def test_gamepad_worker_drives_motors_when_forward_axis_changes():
     asyncio.run(scenario())
 
 
+def test_gamepad_worker_inverts_left_stick_horizontal_direction():
+    i2c_pwm = RecordingI2cPwm()
+    worker = GamepadWorker(
+        gamepad=ScriptedGamepad([]),
+        state=RobotState(),
+        gamepad_ws=RecordingWs(),
+        i2c_pwm=i2c_pwm,
+        motor_pairs=MOTOR_PAIRS,
+        drive_max_pwm=1000,
+    )
+
+    worker._drive(GamepadState(buttons={}, axes={"left_stick_x": 1.0}))
+    left_stick_left = dict(i2c_pwm.calls)
+    i2c_pwm.calls.clear()
+    worker._drive(GamepadState(buttons={}, axes={"left_stick_x": -1.0}))
+    left_stick_right = dict(i2c_pwm.calls)
+
+    assert left_stick_left == compute_drive_pwm(0.0, 0.0, 1000, MOTOR_PAIRS, lateral=-1.0)
+    assert left_stick_right == compute_drive_pwm(0.0, 0.0, 1000, MOTOR_PAIRS, lateral=1.0)
+
+
 def test_gamepad_worker_ignores_gamepad_when_follow_band_mode_active():
     async def scenario():
         states = [

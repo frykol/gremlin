@@ -12,12 +12,14 @@ class ADS1115Worker:
         state: RobotState,
         poll_interval: float = 0.1,
         shutdown_min_voltage: float | None = 12,
+        low_voltage_shutdown_enabled: bool = True,
         is_dummy: bool = False,
     ):
         self.ads1115 = ads1115
         self.state: RobotState = state
         self.poll_interval: float = poll_interval
         self.shutdown_min_voltage: float | None = shutdown_min_voltage
+        self.low_voltage_shutdown_enabled = low_voltage_shutdown_enabled
         self.is_dummy: bool = is_dummy
 
         self.running: bool = False
@@ -46,7 +48,12 @@ class ADS1115Worker:
             await asyncio.sleep(self.poll_interval)
 
     def _check_low_voltage_shutdown(self, a0: float) -> None:
-        if self.is_dummy or self.shutdown_min_voltage is None or self._shutdown_triggered:
+        if (
+            self.is_dummy
+            or not self.low_voltage_shutdown_enabled
+            or self.shutdown_min_voltage is None
+            or self._shutdown_triggered
+        ):
             return
 
         if a0 >= self.shutdown_min_voltage:

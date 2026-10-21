@@ -1,4 +1,6 @@
 import asyncio
+import io
+from contextlib import redirect_stdout
 
 from src.hardware.device_power_controller import DevicePowerController
 from src.services.command_processor import CommandProcessor
@@ -73,3 +75,27 @@ def test_command_processor_dispatches_device_power_status():
     }))
 
     assert monitor.calls == [False]
+
+
+def test_command_processor_logs_device_power_status():
+    processor = CommandProcessor(
+        command_queue=asyncio.Queue(),
+        gpio=FakeGpio(),
+        device_power_controller=DevicePowerController(
+            camera=FakeMonitor(),
+            lidar=FakeMonitor(),
+            mic=FakeMonitor(),
+            speaker=FakeMonitor(),
+        ),
+    )
+    message = {
+        "type": "device_power_status",
+        "devices": {"OAK-D": True, "LIDAR": False},
+    }
+    output = io.StringIO()
+
+    with redirect_stdout(output):
+        asyncio.run(processor._dispatch_command(message))
+
+    assert "device_power_status" in output.getvalue()
+    assert str(message["devices"]) in output.getvalue()

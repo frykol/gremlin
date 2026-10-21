@@ -145,7 +145,10 @@
   },
   "esp_lidar": {
     "ws_port": 8769,
-    "udp_port": 5005
+    "udp_port": 5005,
+    "forward_host": "",
+    "forward_port": 5010,
+    "max_datagram_size": 1400
   },
   "automatic_disconnect": false,
   "disconnect_timeout": 2,
@@ -155,12 +158,13 @@
     "address": 73,
     "gain": 1,
     "data_rate": 128,
-    "is_dummy": true,
+    "is_dummy": false,
     "a0_percent_range": {
       "min_volts": 10,
       "max_volts": 16
     },
-    "shutdown_min_voltage": 1
+    "shutdown_min_voltage": 1,
+    "low_voltage_shutdown_enabled": false
   },
   "i2c_pwm": {
     "is_dummy": false

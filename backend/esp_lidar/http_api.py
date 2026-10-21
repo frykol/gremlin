@@ -46,6 +46,7 @@ from .frame_parser import (
     ObstaclePacket,
     decode_packet,
 )
+from .udp_forwarder import DEFAULT_MAX_DATAGRAM_SIZE, PointCloudUdpForwarder
 
 logger = logging.getLogger("esp_lidar")
 
@@ -95,6 +96,13 @@ def parse_args(argv: Optional[list] = None) -> argparse.Namespace:
     parser.add_argument("--port", type=int, default=8769, help="HTTP+WebSocket port")
     parser.add_argument("--udp-host", default="0.0.0.0")
     parser.add_argument("--udp-port", type=int, default=5005)
+    parser.add_argument("--udp-forward-host", default=None)
+    parser.add_argument("--udp-forward-port", type=int, default=5010)
+    parser.add_argument(
+        "--udp-forward-max-datagram-size",
+        type=int,
+        default=DEFAULT_MAX_DATAGRAM_SIZE,
+    )
     parser.add_argument("--esp-ip", default=ESP_COMMAND_IP)
     parser.add_argument("--control-port", type=int, default=ESP_COMMAND_PORT)
     parser.add_argument("--broadcast-interval", type=float, default=BROADCAST_INTERVAL_S)
@@ -128,10 +136,15 @@ class WsAdapter:
 
 
 class EspLidarService:
-    def __init__(self, broadcast_interval: float):
+    def __init__(
+        self,
+        broadcast_interval: float,
+        udp_forwarder: Optional[PointCloudUdpForwarder] = None,
+    ):
         self.accumulator = PointFrameAccumulator()
         self.clients = ClientRegistry()
         self.broadcast_interval = broadcast_interval
+        self.udp_forwarder = udp_forwarder
         self._packet_count = 0
         self._packet_count_window_start = time.monotonic()
         self._last_broadcast_point_count = 0
@@ -157,13 +170,15 @@ class EspLidarService:
         if isinstance(packet, ObstaclePacket):
             self._handle_obstacle_packet(packet)
             return
-        self.accumulator.add_packet(
+        completed = self.accumulator.add_packet(
             packet.frame_id,
             packet.packet_id,
             packet.packet_count,
             packet.points,
         )
         self._packet_count += 1
+        if completed:
+            self._forward_scan(packet.frame_id, self.accumulator.snapshot())
 
     def _handle_obstacle_packet(self, packet: ObstaclePacket) -> None:
         if self._obstacle_frame_id is not None and packet.frame_id < self._obstacle_frame_id:
@@ -206,7 +221,8 @@ class EspLidarService:
             await asyncio.sleep(self.broadcast_interval)
             count = len(self.accumulator)
             if count:
-                await self.clients.broadcast(encode_scan_frame(self.accumulator.snapshot()))
+                points = self.accumulator.snapshot()
+                await self.clients.broadcast(encode_scan_frame(points))
             elif self._last_broadcast_point_count:
                 await self.clients.broadcast(encode_scan_frame([]))
             self._last_broadcast_point_count = count
@@ -225,6 +241,14 @@ class EspLidarService:
                         self.latest_imu.linear_acceleration,
                     )
                 )
+
+    def _forward_scan(self, frame_id, points) -> None:
+        if self.udp_forwarder is None:
+            return
+        try:
+            self.udp_forwarder.send_frame(frame_id, points)
+        except OSError as exc:
+            logger.warning("nie udalo sie przekazac ramki ESP LiDAR przez UDP: %s", exc)
 
     async def metrics_loop(self) -> None:
         while True:
@@ -322,12 +346,29 @@ async def on_cleanup(app: web.Application) -> None:
         transport.close()
     for task in app["background_tasks"]:
         task.cancel()
+    forwarder = app["service"].udp_forwarder
+    if forwarder is not None:
+        forwarder.close()
     await app["service"].clients.close()
 
 
 def create_app(args: argparse.Namespace) -> web.Application:
     app = web.Application(middlewares=[cors_middleware])
-    app["service"] = EspLidarService(args.broadcast_interval)
+    forward_host = getattr(args, "udp_forward_host", None)
+    forwarder = (
+        PointCloudUdpForwarder(
+            forward_host,
+            getattr(args, "udp_forward_port", 5010),
+            getattr(
+                args,
+                "udp_forward_max_datagram_size",
+                DEFAULT_MAX_DATAGRAM_SIZE,
+            ),
+        )
+        if forward_host
+        else None
+    )
+    app["service"] = EspLidarService(args.broadcast_interval, forwarder)
     app["control_client"] = EspControlClient(
         getattr(args, "esp_ip", ESP_COMMAND_IP),
         getattr(args, "control_port", ESP_COMMAND_PORT),

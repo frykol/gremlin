@@ -104,6 +104,7 @@ class CommandProcessor:
 
         if cmd.get("type") == "device_power_status":
             devices = cmd.get("devices")
+            print(f"Received device_power_status: {cmd}")
             if self.device_power_controller is not None and isinstance(devices, dict):
                 await self.device_power_controller.apply(devices)
 

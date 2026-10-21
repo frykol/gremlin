@@ -68,3 +68,23 @@ def test_decode_obstacle_packet_rejects_bad_datagrams():
 
     with pytest.raises(FrameParseError):
         decode_packet(make_obstacle_datagram(20, 0, 0, 0, []))
+
+
+def test_decode_point_packet_rejects_packet_id_outside_frame():
+    header = struct.pack(
+        HEADER_FMT,
+        b"LIDR",
+        1,
+        1,
+        32,
+        21,
+        2,
+        2,
+        0,
+        0,
+        123456,
+        0,
+    )
+
+    with pytest.raises(FrameParseError, match="packet_id"):
+        decode_packet(header)

@@ -99,7 +99,7 @@ class GamepadWorker:
         # normalize_axis_value zwraca -1 - odwracamy znak, zeby "do przodu"
         # (push w gore) odpowiadalo dodatniemu vy, tak jak w follow_band.py.
         vy = -current.axes.get(self.drive_forward_axis, 0.0)
-        lateral = current.axes.get(self.drive_lateral_axis, 0.0)
+        lateral = -current.axes.get(self.drive_lateral_axis, 0.0)
         omega = current.axes.get(self.drive_turn_axis, 0.0)
 
         max_pwm = self.current_max_pwm

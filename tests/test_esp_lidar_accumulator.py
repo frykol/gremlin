@@ -33,3 +33,25 @@ def test_late_packet_from_older_frame_does_not_replace_current_frame():
     accumulator.add_packet(29, 0, 1, [(2.0, 0.0, 0.0, 20)])
 
     assert accumulator.snapshot() == [(3.0, 0.0, 0.0, 30.0)]
+
+
+def test_frame_id_wraparound_accepts_new_frames_and_rejects_late_old_frames():
+    accumulator = PointFrameAccumulator()
+
+    accumulator.add_packet(0xFFFFFFFE, 0, 1, [(1.0, 0.0, 0.0, 10)])
+    accumulator.add_packet(0xFFFFFFFF, 0, 1, [(2.0, 0.0, 0.0, 20)])
+    accumulator.add_packet(0, 0, 1, [(3.0, 0.0, 0.0, 30)])
+    accumulator.add_packet(0xFFFFFFFF, 0, 1, [(4.0, 0.0, 0.0, 40)])
+
+    assert accumulator.completed_frame_id == 0
+    assert accumulator.snapshot() == [(3.0, 0.0, 0.0, 30.0)]
+
+
+def test_duplicate_packet_does_not_mark_same_completed_frame_again():
+    accumulator = PointFrameAccumulator()
+
+    accumulator.add_packet(31, 0, 1, [(3.0, 0.0, 0.0, 30)])
+    completed_version = accumulator.completed_frame_version
+    accumulator.add_packet(31, 0, 1, [(3.0, 0.0, 0.0, 30)])
+
+    assert accumulator.completed_frame_version == completed_version

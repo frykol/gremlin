@@ -137,10 +137,13 @@ def decode_packet(
         )
 
     if message_type == MSG_OBSTACLES:
+        packet_id = field_12
         packet_count = field_14
         obstacle_count = field_16
         if packet_count == 0:
             raise FrameParseError("packet_count == 0")
+        if packet_id >= packet_count:
+            raise FrameParseError("obstacle packet_id must be less than packet_count")
 
         expected_len = _HEADER_LEN + obstacle_count * _OBSTACLE_LEN
         if len(data) < expected_len:
@@ -177,6 +180,8 @@ def decode_packet(
     point_count = field_16
     if packet_count == 0:
         raise FrameParseError("packet_count == 0")
+    if packet_id >= packet_count:
+        raise FrameParseError("point packet_id must be less than packet_count")
 
     expected_len = _HEADER_LEN + point_count * _POINT_LEN
     if len(data) < expected_len:

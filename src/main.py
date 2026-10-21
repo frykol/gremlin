@@ -169,6 +169,12 @@ def _build_esp_lidar_command(config: dict) -> list[str]:
         str(esp_lidar_config.get("ws_port", 8769)),
         "--udp-port",
         str(esp_lidar_config.get("udp_port", 5005)),
+        "--udp-forward-host",
+        str(esp_lidar_config.get("forward_host", "")),
+        "--udp-forward-port",
+        str(esp_lidar_config.get("forward_port", 5010)),
+        "--udp-forward-max-datagram-size",
+        str(esp_lidar_config.get("max_datagram_size", 1400)),
     ]
 
 

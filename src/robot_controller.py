@@ -120,6 +120,9 @@ class RobotController:
             state=self.state,
             ads1115=ads1115,
             shutdown_min_voltage=ads1115_config.get("shutdown_min_voltage", 12),
+            low_voltage_shutdown_enabled=ads1115_config.get(
+                "low_voltage_shutdown_enabled", True
+            ),
             is_dummy=ads1115_config.get("is_dummy", False),
         )
 
